@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
+import { supabase } from './supabase'
 
-export default function ListingModal({ listing, onClose, darkMode }) {
+export default function ListingModal({ listing, onClose, darkMode, currentUser, onSignIn }) {
   const dm = darkMode
   const [visible, setVisible] = useState(false)
   const [imgIndex, setImgIndex] = useState(0)
   const [lightbox, setLightbox] = useState(false)
+  const [msgText, setMsgText] = useState('')
+  const [msgStatus, setMsgStatus] = useState('idle') // idle | sending | sent | error
+  const isOwnListing = currentUser && listing.user_id && currentUser.id === listing.user_id
 
   const parseImages = (raw) => {
     if (!raw) return []
@@ -26,6 +30,22 @@ export default function ListingModal({ listing, onClose, darkMode }) {
   }, [lightbox])
 
   const handleClose = () => { setVisible(false); setTimeout(onClose, 300) }
+
+  const sendMessage = async () => {
+    if (!msgText.trim() || msgStatus === 'sending') return
+    setMsgStatus('sending')
+    const { error } = await supabase.from('messages').insert([{
+      listing_id: listing.id,
+      sender_id: currentUser.id,
+      recipient_id: listing.user_id,
+      sender_email: currentUser.email,
+      recipient_email: listing.contact_email,
+      content: msgText.trim(),
+      read: false,
+    }])
+    if (error) { setMsgStatus('error') }
+    else { setMsgStatus('sent'); setMsgText('') }
+  }
   const prev = () => setImgIndex(i => Math.max(i - 1, 0))
   const next = () => setImgIndex(i => Math.min(i + 1, images.length - 1))
 
@@ -284,6 +304,12 @@ export default function ListingModal({ listing, onClose, darkMode }) {
 
               {/* Stats: label + value pairs */}
               <div style={{ marginBottom: 32 }}>
+                {listing.neighborhood && (
+                  <div className="lm-stat-row" style={{ borderBottomColor: border }}>
+                    <span style={{ fontSize: 13, color: textFaint, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', width: 100, flexShrink: 0 }}>Neighborhood</span>
+                    <span style={{ fontSize: 15, color: textPrimary, fontWeight: 600 }}>📍 {listing.neighborhood}</span>
+                  </div>
+                )}
                 {listing.beds && (
                   <div className="lm-stat-row" style={{ borderBottomColor: border }}>
                     <span style={{ fontSize: 13, color: textFaint, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', width: 100, flexShrink: 0 }}>Bedrooms</span>
@@ -341,26 +367,39 @@ export default function ListingModal({ listing, onClose, darkMode }) {
               <div style={{ height: 24 }} />
             </div>
 
-            {/* ── STICKY FOOTER CTA ── */}
-            <div style={{
-              padding: '20px 44px 28px',
-              borderTop: `1px solid ${border}`,
-              background: panelBg,
-              flexShrink: 0,
-            }}>
-              {listing.contact_email ? (
-                <a
-                  href={`mailto:${listing.contact_email}?subject=Interested in your sublease: ${listing.title}&body=Hi, I saw your listing on Subly and I'm interested. Could we connect?`}
-                  className="lm-contact-btn"
-                >
-                  ✉ Contact Lister
-                </a>
-              ) : (
-                <div className="lm-contact-btn" style={{ opacity: 0.4, cursor: 'default', pointerEvents: 'none' }}>
-                  No contact info available
+            {/* ── STICKY FOOTER: MESSAGE FORM ── */}
+            <div style={{ padding: '20px 44px 28px', borderTop: `1px solid ${border}`, background: panelBg, flexShrink: 0 }}>
+              {isOwnListing ? (
+                <div style={{ textAlign: 'center', padding: '12px', background: dm ? 'rgba(255,255,255,0.05)' : '#f5f5f7', borderRadius: 12, color: textSub, fontSize: 13 }}>
+                  This is your listing
                 </div>
+              ) : currentUser ? (
+                msgStatus === 'sent' ? (
+                  <div style={{ textAlign: 'center', padding: '14px', background: dm ? 'rgba(52,199,89,0.1)' : 'rgba(52,199,89,0.08)', borderRadius: 12, border: `1px solid rgba(52,199,89,0.2)`, color: '#16a34a', fontSize: 14, fontWeight: 600 }}>
+                    ✓ Message sent! Check Messages in your Dashboard.
+                    <button onClick={() => setMsgStatus('idle')} style={{ display: 'block', margin: '8px auto 0', background: 'none', border: 'none', fontSize: 12, color: '#16a34a', cursor: 'pointer', opacity: 0.7, fontFamily: 'inherit' }}>Send another</button>
+                  </div>
+                ) : (
+                  <>
+                    <textarea
+                      value={msgText}
+                      onChange={e => { setMsgText(e.target.value); if (msgStatus === 'error') setMsgStatus('idle') }}
+                      placeholder="Hi, I'm interested in your sublease…"
+                      rows={3}
+                      style={{ width: '100%', background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${msgStatus === 'error' ? 'rgba(255,59,48,0.5)' : (dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)')}`, borderRadius: 12, padding: '11px 14px', fontSize: 14, fontFamily: 'Inter, sans-serif', color: textPrimary, resize: 'none', outline: 'none', lineHeight: 1.5, marginBottom: 10, boxSizing: 'border-box', transition: 'border-color 0.2s' }}
+                    />
+                    {msgStatus === 'error' && <div style={{ fontSize: 12, color: '#ff3b30', marginBottom: 8 }}>Failed to send. Please try again.</div>}
+                    <button className="lm-contact-btn" onClick={sendMessage} disabled={!msgText.trim() || msgStatus === 'sending'} style={{ opacity: !msgText.trim() ? 0.6 : 1 }}>
+                      {msgStatus === 'sending' ? 'Sending…' : '✉ Send Message'}
+                    </button>
+                  </>
+                )
+              ) : (
+                <button className="lm-contact-btn" onClick={onSignIn}>
+                  Sign In to Contact Lister
+                </button>
               )}
-              <p style={{ textAlign: 'center', fontSize: 12, color: textFaint, marginTop: 12 }}>
+              <p style={{ textAlign: 'center', fontSize: 12, color: textFaint, marginTop: 10 }}>
                 ✓ @umich.edu verified listing
               </p>
             </div>

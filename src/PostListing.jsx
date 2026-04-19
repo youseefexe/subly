@@ -8,12 +8,13 @@ import { supabase } from './supabase'
 
 const MAX_IMAGES = 5
 const TAGS = ['Utilities included', 'In-unit washer/dryer', 'Parking included', 'Pet friendly', 'Furnished', 'A/C', 'Dishwasher', 'Gym access', 'Near bus line', 'Private bathroom', 'Short term ok', 'Bills split']
+const NEIGHBORHOODS = ['Central Campus', 'North Campus', 'South Campus', 'Kerrytown', 'Burns Park', 'Old West Side', 'Downtown Ann Arbor', 'Near Northside', 'Water Hill', 'Other']
 
 export default function PostListing({ onBack, user, onSuccess, darkMode, onToggleDark }) {
   const dm = darkMode
   const [form, setForm] = useState({
     title: '', address: '', price: '', beds: 'Studio',
-    description: '', contact_email: user?.email || ''
+    neighborhood: '', description: '', contact_email: user?.email || ''
   })
   const [startDate, setStartDate] = useState(null)
   const [endDate, setEndDate] = useState(null)
@@ -120,6 +121,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
       user_id: user?.id,
       image_url: imageUrls.length > 0 ? JSON.stringify(imageUrls) : null,
       tags: selectedTags.length > 0 ? selectedTags : null,
+      neighborhood: form.neighborhood || null,
     }])
 
     if (insertError) { setError(insertError.message); setStatus('idle') }
@@ -287,6 +289,15 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                       ))}
                     </div>
                   )}
+                </div>
+
+                {/* Neighborhood */}
+                <div>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Neighborhood</label>
+                  <select className="field-input" value={form.neighborhood} onChange={e => update('neighborhood', e.target.value)}>
+                    <option value="">Select a neighborhood…</option>
+                    {NEIGHBORHOODS.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
                 </div>
 
                 {/* Price and Beds */}

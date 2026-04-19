@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
@@ -20,6 +21,7 @@ const UMichIcon = L.divIcon({
 })
 
 const TAGS = ['Utilities included', 'In-unit washer/dryer', 'Parking included', 'Pet friendly', 'Furnished', 'A/C', 'Dishwasher', 'Gym access', 'Near bus line', 'Private bathroom', 'Short term ok', 'Bills split']
+const NEIGHBORHOODS = ['Central Campus', 'North Campus', 'South Campus', 'Kerrytown', 'Burns Park', 'Old West Side', 'Downtown Ann Arbor', 'Near Northside', 'Water Hill', 'Other']
 
 const getCoverImage = (raw) => {
   if (!raw) return null
@@ -44,18 +46,34 @@ const parseDate = (str) => {
 
 function FilterPill({ label, active, onClear, children, dm }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef(null)
+  const [rect, setRect] = useState(null)
+  const btnRef = useRef(null)
+  const dropRef = useRef(null)
+
+  const handleToggle = () => {
+    if (!open && btnRef.current) {
+      setRect(btnRef.current.getBoundingClientRect())
+    }
+    setOpen(o => !o)
+  }
 
   useEffect(() => {
-    const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    if (!open) return
+    const fn = e => {
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        dropRef.current && !dropRef.current.contains(e.target)
+      ) setOpen(false)
+    }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
-  }, [])
+  }, [open])
 
   return (
-    <div ref={ref} style={{ position: 'relative', flexShrink: 0 }}>
+    <div style={{ position: 'relative', flexShrink: 0 }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleToggle}
         style={{
           display: 'flex', alignItems: 'center', gap: 6,
           padding: '8px 14px', borderRadius: 980,
@@ -70,25 +88,31 @@ function FilterPill({ label, active, onClear, children, dm }) {
         {active && <span onClick={e => { e.stopPropagation(); onClear() }} style={{ marginLeft: 2, opacity: 0.7, fontSize: 14, lineHeight: 1 }}>×</span>}
         {!active && <span style={{ fontSize: 10, opacity: 0.4, marginLeft: 2 }}>{open ? '▲' : '▼'}</span>}
       </button>
-      {open && (
-        <div style={{
-          position: 'absolute', top: 'calc(100% + 8px)', left: 0, zIndex: 9999,
-          background: dm ? '#1c1c1e' : '#fff', borderRadius: 16,
-          border: `1px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-          boxShadow: '0 16px 48px rgba(0,0,0,0.25)', padding: 20, minWidth: 240,
-          animation: 'pop-in 0.15s ease',
-        }}>
+      {open && rect && createPortal(
+        <div
+          ref={dropRef}
+          style={{
+            position: 'fixed',
+            top: rect.bottom + 8,
+            left: rect.left,
+            zIndex: 99999,
+            background: dm ? '#1c1c1e' : '#fff', borderRadius: 16,
+            border: `1px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+            boxShadow: '0 16px 48px rgba(0,0,0,0.25)', padding: 20, minWidth: 240,
+            animation: 'pop-in 0.15s ease',
+          }}>
           {children}
           <button onClick={() => setOpen(false)} style={{ marginTop: 16, width: '100%', background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             Apply
           </button>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
 }
 
-export default function BrowseListings({ onBack, onPost, currentUser, initialModal, onModalClear, darkMode, onToggleDark }) {
+export default function BrowseListings({ onBack, onPost, onDashboard, currentUser, initialModal, onModalClear, darkMode, onToggleDark, onSignIn }) {
   const dm = darkMode
   const [listings, setListings] = useState([])
   const [filtered, setFiltered] = useState([])
@@ -103,6 +127,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
   const [dateFrom, setDateFrom] = useState('')
   const [dateTo, setDateTo] = useState('')
   const [selectedTags, setSelectedTags] = useState([])
+  const [neighborhood, setNeighborhood] = useState('Any')
   const [hideFilled, setHideFilled] = useState(false)
   const MAX_SLIDER = 3000
 
@@ -152,12 +177,13 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         return selectedTags.every(t => lt.includes(t))
       })
     }
+    if (neighborhood !== 'Any') result = result.filter(l => l.neighborhood === neighborhood)
     if (hideFilled) result = result.filter(l => !l.filled)
     setFiltered(result)
-  }, [search, beds, maxPrice, priceActive, dateFrom, dateTo, selectedTags, hideFilled, listings])
+  }, [search, beds, maxPrice, priceActive, dateFrom, dateTo, selectedTags, neighborhood, hideFilled, listings])
 
-  const clearAll = () => { setBeds('Any'); setMaxPrice(3000); setPriceActive(false); setDateFrom(''); setDateTo(''); setSelectedTags([]); setHideFilled(false) }
-  const anyActive = beds !== 'Any' || priceActive || dateFrom || dateTo || selectedTags.length > 0 || hideFilled
+  const clearAll = () => { setBeds('Any'); setMaxPrice(3000); setPriceActive(false); setDateFrom(''); setDateTo(''); setSelectedTags([]); setNeighborhood('Any'); setHideFilled(false) }
+  const anyActive = beds !== 'Any' || priceActive || dateFrom || dateTo || selectedTags.length > 0 || neighborhood !== 'Any' || hideFilled
   const mapCenter = [42.2808, -83.7430]
 
   return (
@@ -169,9 +195,9 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         @keyframes pop-in { from { opacity: 0; transform: translateY(-6px) scale(0.97); } to { opacity: 1; transform: none; } }
         .listing-tile { background: #fff; border-radius: 16px; border: 1.5px solid rgba(0,0,0,0.07); overflow: hidden; cursor: pointer; transition: all 0.25s ease; }
         .listing-tile:hover { box-shadow: 0 12px 36px rgba(0,39,76,0.13); transform: translateY(-3px); border-color: rgba(0,39,76,0.15); }
-        .view-btn { background: transparent; border: none; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 16px; transition: background 0.15s; }
-        .view-btn:hover { background: rgba(0,0,0,0.06); }
-        .view-btn.active { background: rgba(0,39,76,0.08); }
+        .view-btn { background: transparent; border: none; width: 34px; height: 34px; border-radius: 8px; cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; color: #6e6e73; }
+        .view-btn:hover { background: rgba(0,0,0,0.05); color: #1d1d1f; }
+        .view-btn.active { background: #00274C; color: #FFCB05; }
         .search-input { flex: 1; border: none; outline: none; font-size: 14px; font-family: inherit; color: #1d1d1f; background: transparent; }
         .search-input::placeholder { color: #aeaeb2; }
         .pill { font-size: 11px; color: #6e6e73; background: #f5f5f7; padding: 3px 9px; border-radius: 980px; }
@@ -187,6 +213,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         .price-slider { -webkit-appearance: none; width: 100%; height: 4px; border-radius: 2px; outline: none; cursor: pointer; background: transparent; }
         .price-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #00274C; border: 3px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.2); cursor: pointer; transition: transform 0.15s; }
         .price-slider::-webkit-slider-thumb:hover { transform: scale(1.15); }
+        [data-theme="dark"] .price-slider::-webkit-slider-thumb { background: #FFCB05; border-color: #1c1c1e; }
         .date-input { width: 100%; border: 1.5px solid rgba(0,39,76,0.12); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; color: #1d1d1f; outline: none; transition: border-color 0.2s; background: #fff; }
         .date-input:focus { border-color: #00274C; }
         .leaflet-container { height: 100%; width: 100%; }
@@ -199,8 +226,9 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         [data-theme="dark"] body { background: #0f0f11; }
         [data-theme="dark"] .listing-tile { background: #1c1c1e; border-color: rgba(255,255,255,0.08); }
         [data-theme="dark"] .listing-tile:hover { box-shadow: 0 12px 36px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.14); }
-        [data-theme="dark"] .view-btn:hover { background: rgba(255,255,255,0.08); }
-        [data-theme="dark"] .view-btn.active { background: rgba(255,255,255,0.12); }
+        [data-theme="dark"] .view-btn { color: #8e8e93; }
+        [data-theme="dark"] .view-btn:hover { background: rgba(255,255,255,0.07); color: #f5f5f7; }
+        [data-theme="dark"] .view-btn.active { background: #FFCB05; color: #00274C; }
         [data-theme="dark"] .search-input { color: #f5f5f7; }
         [data-theme="dark"] .search-input::placeholder { color: #636366; }
         [data-theme="dark"] .pill { background: #2c2c2e; color: #8e8e93; }
@@ -210,12 +238,14 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         [data-theme="dark"] .bed-opt:hover { background: rgba(255,255,255,0.05); }
         [data-theme="dark"] .tag-chip { background: #2c2c2e; color: #8e8e93; border-color: rgba(255,255,255,0.1); }
         [data-theme="dark"] .date-input { background: #2c2c2e; color: #f5f5f7; border-color: rgba(255,255,255,0.1); }
-        @media (max-width: 390px) {
-          .browse-nav { flex-wrap: wrap !important; height: auto !important; padding: 10px 16px 10px !important; gap: 8px !important; }
-          .browse-search { width: 100% !important; max-width: none !important; margin: 0 !important; order: 3; flex: none !important; }
+        @media (max-width: 640px) {
+          .browse-nav { padding: 0 16px !important; }
+          .browse-right { gap: 8px !important; }
           .browse-view-toggle { display: none !important; }
-          .browse-post-btn { display: none !important; }
-          .browse-back-link { display: none !important; }
+          .browse-avatar { display: none !important; }
+        }
+        @media (max-width: 390px) {
+          .browse-search { margin: 0 10px !important; }
           .filter-bar { padding: 10px 12px !important; }
           .filter-bar::-webkit-scrollbar { display: none !important; }
           .listings-panel { width: 100% !important; }
@@ -225,31 +255,58 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', background: dm ? '#0f0f11' : '#f5f5f7' }}>
 
         {/* NAV */}
-        <nav className="browse-nav" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, zIndex: 50 }}>
+        <nav className="browse-nav" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, padding: '0 28px', height: 64, display: 'flex', alignItems: 'center', gap: 20, flexShrink: 0, zIndex: 50 }}>
+          {/* Left — logo */}
           <SublyWordmark size={26} onClick={onBack} light={dm} />
-          <div className="browse-search" style={{ flex: 1, maxWidth: 480, margin: '0 24px', background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 980, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 14, color: dm ? '#636366' : '#aeaeb2' }}>🔍</span>
-            <input className="search-input" placeholder="Search by title or address..." value={search} onChange={e => setSearch(e.target.value)} />
-            {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: dm ? '#636366' : '#aeaeb2', cursor: 'pointer', fontSize: 16 }}>×</button>}
+
+          {/* Center — search */}
+          <div className="browse-search" style={{ flex: 1, background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`, borderRadius: 980, padding: '10px 18px', display: 'flex', alignItems: 'center', gap: 10, transition: 'border-color 0.15s', maxWidth: 560 }}>
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" style={{ flexShrink: 0, color: dm ? '#636366' : '#aeaeb2' }}>
+              <circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" strokeWidth="1.5"/>
+              <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
+            <input
+              className="search-input"
+              placeholder="Search by title or address..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              style={{ fontSize: 14 }}
+            />
+            {search && (
+              <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: dm ? '#636366' : '#aeaeb2', cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: 0, flexShrink: 0 }}>×</button>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div className="browse-view-toggle" style={{ display: 'flex', background: dm ? '#2c2c2e' : '#f5f5f7', borderRadius: 10, padding: 3, gap: 2 }}>
-              {[['split', '⊞'], ['list', '☰'], ['map', '🗺']].map(([v, icon]) => (
+
+          {/* Right — view toggle, post, avatar */}
+          <div className="browse-right" style={{ display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0, marginLeft: 'auto' }}>
+            {/* View toggle */}
+            <div className="browse-view-toggle" style={{ display: 'flex', background: dm ? '#2c2c2e' : '#f0f0f2', borderRadius: 10, padding: 3, gap: 2 }}>
+              {[
+                ['split', <svg key="s" width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="1" width="5.5" height="13" rx="1.5" fill="currentColor"/><rect x="8.5" y="1" width="5.5" height="13" rx="1.5" fill="currentColor"/></svg>],
+                ['list', <svg key="l" width="15" height="15" viewBox="0 0 15 15" fill="none"><rect x="1" y="2" width="13" height="2" rx="1" fill="currentColor"/><rect x="1" y="6.5" width="13" height="2" rx="1" fill="currentColor"/><rect x="1" y="11" width="13" height="2" rx="1" fill="currentColor"/></svg>],
+                ['map', <svg key="m" width="15" height="15" viewBox="0 0 15 15" fill="none"><path d="M5.5 1L1 3v10l4.5-2 4 2 4.5-2V1L9.5 3l-4-2z" stroke="currentColor" strokeWidth="1.4" strokeLinejoin="round" fill="none"/><line x1="5.5" y1="1" x2="5.5" y2="11" stroke="currentColor" strokeWidth="1.4"/><line x1="9.5" y1="3" x2="9.5" y2="13" stroke="currentColor" strokeWidth="1.4"/></svg>],
+              ].map(([v, icon]) => (
                 <button key={v} className={`view-btn ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>{icon}</button>
               ))}
             </div>
-            <button className="dark-toggle" onClick={onToggleDark} title={dm ? 'Light mode' : 'Dark mode'} style={{ borderColor: dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)', background: dm ? 'rgba(255,255,255,0.08)' : '#f5f5f7' }}>
-              {dm ? '☀️' : '🌙'}
-            </button>
-            <button className="browse-back-link" onClick={onBack} style={{ background: 'none', border: 'none', color: dm ? '#8e8e93' : '#6e6e73', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Home</button>
+
+            {/* Avatar */}
             {currentUser && (
-              <button className="browse-post-btn" onClick={onPost} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ Post</button>
+              <div
+                className="browse-avatar"
+                onClick={onDashboard}
+                title="My Dashboard"
+                style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s', userSelect: 'none' }}
+                onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,39,76,0.2)'}
+                onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,39,76,0.25)'}>
+                {(() => { const u = currentUser.email?.split('@')[0] || ''; return (u[0] + (u[u.length - 1] || '')).toUpperCase() })()}
+              </div>
             )}
           </div>
         </nav>
 
         {/* FILTER BAR */}
-        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 1002, position: 'relative', scrollbarWidth: 'none' }}>
+        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 9999, position: 'relative', scrollbarWidth: 'none' }}>
 
           <FilterPill label={dateFrom || dateTo ? `${dateFrom || '...'} → ${dateTo || '...'}` : '📅 Dates'} active={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo('') }} dm={dm}>
             <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>From</div>
@@ -271,7 +328,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
               <div style={{ fontSize: 18, fontWeight: 800, color: dm ? '#FFCB05' : '#00274C', letterSpacing: '-0.02em' }}>${maxPrice.toLocaleString()}</div>
             </div>
             <div style={{ position: 'relative', marginBottom: 8 }}>
-              <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 4, background: `linear-gradient(to right, #00274C ${(maxPrice / MAX_SLIDER) * 100}%, #e5e7eb ${(maxPrice / MAX_SLIDER) * 100}%)`, borderRadius: 2, transform: 'translateY(-50%)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 4, background: `linear-gradient(to right, ${dm ? '#FFCB05' : '#00274C'} ${(maxPrice / MAX_SLIDER) * 100}%, ${dm ? '#3a3a3e' : '#e5e7eb'} ${(maxPrice / MAX_SLIDER) * 100}%)`, borderRadius: 2, transform: 'translateY(-50%)', pointerEvents: 'none' }} />
               <input type="range" min={500} max={MAX_SLIDER} step={50} value={maxPrice} onChange={e => { setMaxPrice(parseInt(e.target.value)); setPriceActive(true) }} className="price-slider" />
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#aeaeb2', marginBottom: 12 }}>
@@ -295,6 +352,13 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
                 </button>
               ))}
             </div>
+          </FilterPill>
+
+          <FilterPill label={neighborhood !== 'Any' ? `📍 ${neighborhood}` : '📍 Neighborhood'} active={neighborhood !== 'Any'} onClear={() => setNeighborhood('Any')} dm={dm}>
+            <div style={{ marginBottom: 8, fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Neighborhood</div>
+            {['Any', ...NEIGHBORHOODS].map(n => (
+              <button key={n} className={`bed-opt ${neighborhood === n ? 'active' : ''}`} onClick={() => setNeighborhood(n)}>{n}</button>
+            ))}
           </FilterPill>
 
           <button
@@ -361,6 +425,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
                       <p style={{ fontSize: 13, color: dm ? '#636366' : '#aeaeb2', marginBottom: 10 }}>📍 {listing.address}</p>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {listing.beds && <span className="pill">{listing.beds}</span>}
+                        {listing.neighborhood && <span className="pill pill-blue">📍 {listing.neighborhood}</span>}
                         {listing.dates && <span className="pill pill-gold">{listing.dates}</span>}
                         {Array.isArray(listing.tags) && listing.tags.slice(0, 2).map(tag => (
                           <span key={tag} className="pill pill-blue">{tag}</span>
@@ -380,7 +445,13 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
           {view !== 'list' && (
             <div style={{ flex: 1, position: 'relative' }}>
               <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%' }}>
-                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
+                <TileLayer
+                  key={dm ? 'dark' : 'light'}
+                  url={dm
+                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                    : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'}
+                  attribution='&copy; OpenStreetMap contributors &copy; CARTO'
+                />
                 {filtered.map(listing => {
                   const coords = geocoded[listing.id]
                   if (!coords) return null
@@ -406,7 +477,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
       </div>
 
       {/* MODAL */}
-      {modalListing && <ListingModal listing={modalListing} onClose={() => setModalListing(null)} darkMode={dm} />}
+      {modalListing && <ListingModal listing={modalListing} onClose={() => setModalListing(null)} darkMode={dm} currentUser={currentUser} onSignIn={onSignIn} />}
     </>
   )
 }
