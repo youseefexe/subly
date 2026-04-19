@@ -188,10 +188,14 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
         .react-datepicker__day:hover { background: rgba(0,39,76,0.08) !important; border-radius: 8px !important; }
         .react-datepicker__day--keyboard-selected { background: rgba(0,39,76,0.15) !important; border-radius: 8px !important; }
         .react-datepicker__day--range-start, .react-datepicker__day--range-end { background: #00274C !important; color: #FFCB05 !important; font-weight: 700 !important; border-radius: 8px !important; }
+        @media (max-width: 390px) {
+          .two-col-grid { grid-template-columns: 1fr !important; }
+          .react-datepicker__input-container input { font-size: 14px !important; }
+        }
       `}</style>
 
       <div style={{ minHeight: '100vh', background: dm ? '#0f0f11' : '#FAFAF8', fontFamily: 'Inter, sans-serif' }}>
-        <nav style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, padding: '0 48px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <nav style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, padding: '0 clamp(16px, 3vw, 48px)', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <SublyWordmark size={28} onClick={onBack} light={dm} />
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <button className="dark-toggle" onClick={onToggleDark} title={dm ? 'Light mode' : 'Dark mode'} style={{ borderColor: dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)', background: dm ? 'rgba(255,255,255,0.08)' : '#f5f5f7' }}>
@@ -284,7 +288,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                 </div>
 
                 {/* Price and Beds */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                <div className="two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
                     <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Monthly Rent *</label>
                     <input className="field-input" type="number" placeholder="875" value={form.price} onChange={e => update('price', e.target.value)} />
@@ -300,7 +304,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                 {/* Date range */}
                 <div>
                   <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Available Dates *</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                  <div className="two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <div style={{ fontSize: 11, color: '#aeaeb2', marginBottom: 6, fontWeight: 500 }}>FROM</div>
                       <DatePicker

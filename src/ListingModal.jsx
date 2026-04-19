@@ -108,13 +108,21 @@ export default function ListingModal({ listing, onClose, darkMode }) {
 
         .lightbox-img { animation: lightbox-in 0.2s ease; max-width: 95vw; max-height: 90vh; border-radius: 10px; object-fit: contain; }
 
-        /* Mobile: stack vertically */
+        /* Tablet: stack vertically */
         @media (max-width: 768px) {
-          .lm-layout { flex-direction: column !important; }
-          .lm-left { width: 100% !important; height: 52vw !important; min-height: 240px; max-height: 340px; flex-shrink: 0; }
-          .lm-right { width: 100% !important; height: auto !important; }
-          .lm-modal { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; border-radius: 0 !important; }
+          .lm-modal { flex-direction: column !important; }
+          .lm-left { width: 100% !important; height: 45vh !important; flex-shrink: 0; }
+          .lm-right { width: 100% !important; flex: 1 !important; min-height: 0 !important; }
           .lm-thumbs { display: none !important; }
+        }
+        /* Mobile: full screen */
+        @media (max-width: 390px) {
+          .lm-modal { width: 100% !important; height: 100% !important; max-width: 100% !important; max-height: 100% !important; border-radius: 0 !important; flex-direction: column !important; }
+          .lm-left { width: 100% !important; height: 40vh !important; flex-shrink: 0; }
+          .lm-right { width: 100% !important; flex: 1 !important; min-height: 0 !important; overflow: hidden !important; }
+          .lm-thumbs { display: none !important; }
+          .lm-overlay { padding: 0 !important; align-items: flex-start !important; }
+          .lm-close-btn { top: 12px !important; right: 12px !important; }
         }
       `}</style>
 

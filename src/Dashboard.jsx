@@ -175,12 +175,21 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
         [data-theme="dark"] .user-menu-item { color: #f5f5f7; }
         [data-theme="dark"] .user-menu-item:hover { background: rgba(255,255,255,0.06); }
         [data-theme="dark"] .drop-zone { background: #2c2c2e; border-color: rgba(255,255,255,0.15); }
+        .bottom-nav { display: none; }
+        @media (max-width: 390px) {
+          .sidebar { display: none !important; }
+          .main-content { margin-left: 0 !important; padding: 20px 16px 90px !important; }
+          .stat-cards-grid { grid-template-columns: 1fr !important; }
+          .bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 64px; background: inherit; border-top: 1px solid; z-index: 200; align-items: stretch; }
+          .modal { max-width: 100% !important; border-radius: 0 !important; max-height: 100vh !important; height: 100% !important; }
+          .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+        }
       `}</style>
 
       <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'Inter, sans-serif', background: dm ? '#0f0f11' : '#f7f7f8' }}>
 
         {/* SIDEBAR */}
-        <div style={{ width: 240, flexShrink: 0, background: dm ? '#1c1c1e' : '#fff', borderRight: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, display: 'flex', flexDirection: 'column', padding: '24px 16px', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 100 }}>
+        <div className="sidebar" style={{ width: 240, flexShrink: 0, background: dm ? '#1c1c1e' : '#fff', borderRight: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`, display: 'flex', flexDirection: 'column', padding: '24px 16px', position: 'fixed', top: 0, bottom: 0, left: 0, zIndex: 100 }}>
           <div style={{ marginBottom: 32, padding: '4px 8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <SublyWordmark size={26} onClick={onBack} light={dm} />
             <button className="dark-toggle" onClick={onToggleDark} title={dm ? 'Light mode' : 'Dark mode'} style={{ borderColor: dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)', background: dm ? 'rgba(255,255,255,0.08)' : '#f5f5f7' }}>
@@ -222,7 +231,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
         </div>
 
         {/* MAIN */}
-        <div style={{ flex: 1, marginLeft: 240, padding: '40px', overflowY: 'auto', minHeight: '100vh', background: dm ? '#0f0f11' : '#f7f7f8' }}>
+        <div className="main-content" style={{ flex: 1, marginLeft: 240, padding: '40px', overflowY: 'auto', minHeight: '100vh', background: dm ? '#0f0f11' : '#f7f7f8' }}>
 
           {activeTab === 'listings' && (
             <div>
@@ -234,7 +243,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                 <button className="btn-primary" onClick={onPost}>+ New Listing</button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
+              <div className="stat-cards-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14, marginBottom: 32 }}>
                 {[{ label: 'Total Listings', value: listings.length, icon: '🏠' }, { label: 'Active Now', value: listings.length, icon: '✅' }, { label: 'Inquiries', value: '—', icon: '✉️' }].map(s => (
                   <div key={s.label} className="stat-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
@@ -330,6 +339,22 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
             </div>
           )}
         </div>
+
+      {/* MOBILE BOTTOM NAV */}
+      <div className="bottom-nav" style={{ borderColor: dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)', background: dm ? '#1c1c1e' : '#fff' }}>
+        <button onClick={onBack} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: dm ? '#8e8e93' : '#6e6e73', fontFamily: 'inherit' }}>
+          <span style={{ fontSize: 20 }}>←</span>
+          <span style={{ fontSize: 10, fontWeight: 500 }}>Home</span>
+        </button>
+        <button onClick={() => setActiveTab('listings')} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: activeTab === 'listings' ? '#00274C' : (dm ? '#8e8e93' : '#6e6e73'), fontFamily: 'inherit' }}>
+          <span style={{ fontSize: 20 }}>🏠</span>
+          <span style={{ fontSize: 10, fontWeight: activeTab === 'listings' ? 700 : 500 }}>Listings</span>
+        </button>
+        <button onClick={() => setActiveTab('account')} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, background: 'none', border: 'none', cursor: 'pointer', color: activeTab === 'account' ? '#00274C' : (dm ? '#8e8e93' : '#6e6e73'), fontFamily: 'inherit' }}>
+          <span style={{ fontSize: 20 }}>👤</span>
+          <span style={{ fontSize: 10, fontWeight: activeTab === 'account' ? 700 : 500 }}>Account</span>
+        </button>
+      </div>
       </div>
 
       {/* EDIT MODAL */}

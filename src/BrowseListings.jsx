@@ -108,6 +108,9 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
 
   useEffect(() => { fetchListings() }, [])
   useEffect(() => { if (initialModal) { setModalListing(initialModal); if (onModalClear) onModalClear() } }, [initialModal])
+  useEffect(() => {
+    if (window.innerWidth <= 390) setView('list')
+  }, [])
 
   const fetchListings = async () => {
     setLoading(true)
@@ -207,20 +210,30 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         [data-theme="dark"] .bed-opt:hover { background: rgba(255,255,255,0.05); }
         [data-theme="dark"] .tag-chip { background: #2c2c2e; color: #8e8e93; border-color: rgba(255,255,255,0.1); }
         [data-theme="dark"] .date-input { background: #2c2c2e; color: #f5f5f7; border-color: rgba(255,255,255,0.1); }
+        @media (max-width: 390px) {
+          .browse-nav { flex-wrap: wrap !important; height: auto !important; padding: 10px 16px 10px !important; gap: 8px !important; }
+          .browse-search { width: 100% !important; max-width: none !important; margin: 0 !important; order: 3; flex: none !important; }
+          .browse-view-toggle { display: none !important; }
+          .browse-post-btn { display: none !important; }
+          .browse-back-link { display: none !important; }
+          .filter-bar { padding: 10px 12px !important; }
+          .filter-bar::-webkit-scrollbar { display: none !important; }
+          .listings-panel { width: 100% !important; }
+        }
       `}</style>
 
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif', background: dm ? '#0f0f11' : '#f5f5f7' }}>
 
         {/* NAV */}
-        <nav style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, zIndex: 50 }}>
+        <nav className="browse-nav" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)'}`, padding: '0 24px', height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, zIndex: 50 }}>
           <SublyWordmark size={26} onClick={onBack} light={dm} />
-          <div style={{ flex: 1, maxWidth: 480, margin: '0 24px', background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 980, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div className="browse-search" style={{ flex: 1, maxWidth: 480, margin: '0 24px', background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 980, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 14, color: dm ? '#636366' : '#aeaeb2' }}>🔍</span>
             <input className="search-input" placeholder="Search by title or address..." value={search} onChange={e => setSearch(e.target.value)} />
             {search && <button onClick={() => setSearch('')} style={{ background: 'none', border: 'none', color: dm ? '#636366' : '#aeaeb2', cursor: 'pointer', fontSize: 16 }}>×</button>}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ display: 'flex', background: dm ? '#2c2c2e' : '#f5f5f7', borderRadius: 10, padding: 3, gap: 2 }}>
+            <div className="browse-view-toggle" style={{ display: 'flex', background: dm ? '#2c2c2e' : '#f5f5f7', borderRadius: 10, padding: 3, gap: 2 }}>
               {[['split', '⊞'], ['list', '☰'], ['map', '🗺']].map(([v, icon]) => (
                 <button key={v} className={`view-btn ${view === v ? 'active' : ''}`} onClick={() => setView(v)}>{icon}</button>
               ))}
@@ -228,15 +241,15 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
             <button className="dark-toggle" onClick={onToggleDark} title={dm ? 'Light mode' : 'Dark mode'} style={{ borderColor: dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)', background: dm ? 'rgba(255,255,255,0.08)' : '#f5f5f7' }}>
               {dm ? '☀️' : '🌙'}
             </button>
-            <button onClick={onBack} style={{ background: 'none', border: 'none', color: dm ? '#8e8e93' : '#6e6e73', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Home</button>
+            <button className="browse-back-link" onClick={onBack} style={{ background: 'none', border: 'none', color: dm ? '#8e8e93' : '#6e6e73', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>← Home</button>
             {currentUser && (
-              <button onClick={onPost} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ Post</button>
+              <button className="browse-post-btn" onClick={onPost} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>+ Post</button>
             )}
           </div>
         </nav>
 
         {/* FILTER BAR */}
-        <div style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'visible', zIndex: 999, position: 'relative' }}>
+        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 999, position: 'relative', scrollbarWidth: 'none' }}>
 
           <FilterPill label={dateFrom || dateTo ? `${dateFrom || '...'} → ${dateTo || '...'}` : '📅 Dates'} active={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo('') }} dm={dm}>
             <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>From</div>
@@ -314,7 +327,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
 
           {/* LISTINGS */}
           {view !== 'map' && (
-            <div style={{ width: view === 'split' ? '50%' : '100%', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: dm ? '#0f0f11' : '#f5f5f7' }}>
+            <div className="listings-panel" style={{ width: view === 'split' ? '50%' : '100%', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: dm ? '#0f0f11' : '#f5f5f7' }}>
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>

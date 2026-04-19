@@ -29,6 +29,7 @@ export default function App() {
   const [activeCard, setActiveCard] = useState(0)
   const [visibleSections, setVisibleSections] = useState(new Set())
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('subly_dark') === 'true')
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
 
   const toggleDark = () => setDarkMode(d => {
     const n = !d
@@ -146,10 +147,23 @@ export default function App() {
         @media (max-width: 900px) {
           .hero-inner { flex-direction: column !important; }
           .hero-card-col { width: 100% !important; margin-top: 48px; }
-          .grid-3 { grid-template-columns: 1fr !important; }
+          .grid-3 { grid-template-columns: 1fr 1fr !important; }
           .nav-center { display: none !important; }
           .preview-grid { grid-template-columns: 1fr !important; }
-          .hero-h1 { font-size: 48px !important; }
+          .hero-h1 { font-size: 52px !important; }
+        }
+        @media (max-width: 390px) {
+          .hero-h1 { font-size: 40px !important; letter-spacing: -0.03em !important; }
+          .hero-card-col { display: none !important; }
+          .hero-mobile-cta { display: flex !important; }
+          .nav-desktop-mid { display: none !important; }
+          .nav-desktop-auth { display: none !important; }
+          .hamburger-btn { display: flex !important; }
+          .grid-3 { grid-template-columns: 1fr !important; }
+          .preview-grid { grid-template-columns: 1fr !important; }
+          .footer-top { flex-direction: column !important; align-items: flex-start !important; }
+          .cta-h2 { font-size: 40px !important; }
+          .mobile-menu { display: flex !important; }
         }
       `}</style>
 
@@ -161,10 +175,10 @@ export default function App() {
         borderBottom: scrolled ? `1px solid ${T.border}` : '1px solid transparent',
         transition: 'all 0.3s ease',
       }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', height: 58, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <SublyWordmark size={28} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} light={darkMode} />
           {currentUser ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="nav-desktop-mid" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <button onClick={() => setShowBrowse(true)} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '10px 22px', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s', boxShadow: '0 2px 12px rgba(0,39,76,0.2)' }}
                 onMouseEnter={e => { e.target.style.background='#003a6e'; e.target.style.transform='translateY(-1px)' }}
                 onMouseLeave={e => { e.target.style.background='#00274C'; e.target.style.transform='none' }}>
@@ -192,18 +206,56 @@ export default function App() {
                 {(() => { const u = currentUser.email?.split('@')[0] || ''; return (u[0] + (u[u.length - 1] || '')).toUpperCase() })()}
               </div>
             ) : (
-              <>
+              <div className="nav-desktop-auth" style={{ display: 'flex', gap: 8 }}>
                 <button className="btn-outline" onClick={() => { setAuthMode('signin'); setShowAuth(true) }} style={{ padding: '9px 20px', fontSize: 13 }}>Sign In</button>
                 <button className="btn-blue" onClick={() => { setAuthMode('signup'); setShowAuth(true) }} style={{ padding: '9px 20px', fontSize: 13 }}>Sign Up</button>
-              </>
+              </div>
             )}
+            <button
+              className="hamburger-btn"
+              onClick={() => setShowMobileMenu(m => !m)}
+              style={{ display: 'none', flexDirection: 'column', gap: 5, padding: '6px', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}>
+              <div style={{ width: 20, height: 2, background: darkMode ? '#f5f5f7' : '#1d1d1f', borderRadius: 2, transition: 'all 0.2s' }} />
+              <div style={{ width: 20, height: 2, background: darkMode ? '#f5f5f7' : '#1d1d1f', borderRadius: 2, transition: 'all 0.2s' }} />
+              <div style={{ width: 14, height: 2, background: darkMode ? '#f5f5f7' : '#1d1d1f', borderRadius: 2, transition: 'all 0.2s' }} />
+            </button>
           </div>
         </div>
       </nav>
 
+      {/* MOBILE MENU */}
+      {showMobileMenu && (
+        <div className="mobile-menu" style={{
+          display: 'none',
+          position: 'fixed', top: 58, left: 0, right: 0, zIndex: 199,
+          background: darkMode ? '#1c1c1e' : '#fff',
+          borderBottom: `1px solid ${T.border}`,
+          flexDirection: 'column', gap: 4,
+          padding: '12px 16px 20px',
+          boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+        }}>
+          <button onClick={() => { setShowBrowse(true); setShowMobileMenu(false) }} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '12px 8px', fontSize: 15, fontWeight: 500, color: T.text, cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8 }}>Browse Listings</button>
+          <a href="#how" onClick={() => setShowMobileMenu(false)} style={{ display: 'block', padding: '12px 8px', fontSize: 15, fontWeight: 500, color: T.text, textDecoration: 'none', borderRadius: 8 }}>How it Works</a>
+          {!currentUser && (
+            <>
+              <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
+              <button onClick={() => { setAuthMode('signin'); setShowAuth(true); setShowMobileMenu(false) }} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '12px 8px', fontSize: 15, fontWeight: 500, color: T.text, cursor: 'pointer', fontFamily: 'inherit', borderRadius: 8 }}>Sign In</button>
+              <button onClick={() => { setAuthMode('signup'); setShowAuth(true); setShowMobileMenu(false) }} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 10, padding: '13px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', marginTop: 4 }}>Create Account</button>
+            </>
+          )}
+          {currentUser && (
+            <>
+              <div style={{ height: 1, background: T.border, margin: '8px 0' }} />
+              <button onClick={() => { setShowPost(true); setShowMobileMenu(false) }} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 10, padding: '13px 16px', fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Post a Listing</button>
+              <button onClick={() => { setShowDashboard(true); setShowMobileMenu(false) }} style={{ background: 'none', border: 'none', textAlign: 'left', padding: '12px 8px', fontSize: 15, fontWeight: 500, color: T.text, cursor: 'pointer', fontFamily: 'inherit' }}>My Dashboard</button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* HERO */}
       <section style={{ background: darkMode ? 'linear-gradient(160deg, #0f0f18 0%, #0f0f11 50%, #0f0e0f 100%)' : 'linear-gradient(160deg, #f0f4ff 0%, #fff 50%, #fffdf0 100%)', paddingTop: 58, minHeight: '100vh', display: 'flex', alignItems: 'center' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px', width: '100%' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', width: '100%' }}>
           <div className="hero-inner" style={{ display: 'flex', alignItems: 'center', gap: 72 }}>
             <div style={{ flex: 1, opacity: mounted ? 1 : 0, transform: mounted ? 'none' : 'translateY(28px)', transition: 'all 0.9s cubic-bezier(0.4,0,0.2,1)' }}>
               <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,39,76,0.07)', borderRadius: 980, padding: '6px 16px', marginBottom: 32 }}>
@@ -225,6 +277,12 @@ export default function App() {
               <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 56 }}>
                 <button className="btn-blue" onClick={() => setShowBrowse(true)} style={{ padding: '13px 28px', fontSize: 15 }}>Browse Listings</button>
                 <button className="btn-outline" onClick={() => currentUser ? setShowPost(true) : (() => { setAuthMode('signup'); setShowAuth(true) })()}>Post Your Place</button>
+              </div>
+
+              {/* Mobile-only CTA replaces float card */}
+              <div className="hero-mobile-cta" style={{ display: 'none', flexDirection: 'column', gap: 10, marginBottom: 32 }}>
+                <button className="btn-blue" onClick={() => setShowBrowse(true)} style={{ padding: '15px 28px', fontSize: 15, justifyContent: 'center', width: '100%' }}>Browse Listings</button>
+                <button className="btn-outline" onClick={() => currentUser ? setShowPost(true) : (() => { setAuthMode('signup'); setShowAuth(true) })()} style={{ padding: '14px 28px', textAlign: 'center', width: '100%' }}>Post Your Place</button>
               </div>
 
               <div style={{ display: 'flex', gap: 0, borderTop: `1px solid ${T.border}`, paddingTop: 32 }}>
@@ -282,7 +340,7 @@ export default function App() {
       </section>
 
       {/* TRUST BAR */}
-      <div style={{ background: '#00274C', padding: '20px 48px' }}>
+      <div style={{ background: '#00274C', padding: '20px clamp(20px, 4vw, 48px)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', justifyContent: 'center', gap: 56, flexWrap: 'wrap' }}>
           {['@umich.edu verified only', 'No listing fees ever', 'Student-to-student only', 'Direct messaging'].map((item) => (
             <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -295,7 +353,7 @@ export default function App() {
 
       {/* PROBLEM */}
       <section id="browse" style={{ background: T.bg2, padding: '110px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)' }}>
           <div data-section="problem" className={`section-fade ${vis('problem') ? 'visible' : ''}`} style={{ textAlign: 'center', marginBottom: 64 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#FFCB05', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, background: '#00274C', display: 'inline-block', padding: '5px 16px', borderRadius: 980 }}>The Problem</div>
             <h2 style={{ fontSize: 50, fontWeight: 800, color: T.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Students are tired of this.</h2>
@@ -318,7 +376,7 @@ export default function App() {
 
       {/* SOLUTION */}
       <section style={{ background: T.bg, padding: '110px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)' }}>
           <div data-section="solution" className={`section-fade ${vis('solution') ? 'visible' : ''}`} style={{ textAlign: 'center', marginBottom: 64 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#FFCB05', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, background: '#00274C', display: 'inline-block', padding: '5px 16px', borderRadius: 980 }}>The Solution</div>
             <h2 style={{ fontSize: 50, fontWeight: 800, color: T.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>A better way to sublease.</h2>
@@ -342,7 +400,7 @@ export default function App() {
 
       {/* PRODUCT PREVIEW */}
       <section style={{ background: T.bg2, padding: '110px 0' }}>
-        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 48px', textAlign: 'center' }}>
+        <div style={{ maxWidth: 960, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)', textAlign: 'center' }}>
           <div data-section="preview" className={`section-fade ${vis('preview') ? 'visible' : ''}`}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#FFCB05', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, background: '#00274C', display: 'inline-block', padding: '5px 16px', borderRadius: 980 }}>Preview</div>
             <h2 style={{ fontSize: 50, fontWeight: 800, color: T.text, letterSpacing: '-0.03em', marginBottom: 12, lineHeight: 1.1 }}>See it in action.</h2>
@@ -388,7 +446,7 @@ export default function App() {
 
       {/* HOW IT WORKS */}
       <section id="how" style={{ background: T.bg, padding: '110px 0' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 48px' }}>
+        <div style={{ maxWidth: 1200, margin: '0 auto', padding: '0 clamp(20px, 4vw, 48px)' }}>
           <div data-section="how" className={`section-fade ${vis('how') ? 'visible' : ''}`} style={{ textAlign: 'center', marginBottom: 64 }}>
             <div style={{ fontSize: 12, fontWeight: 700, color: '#FFCB05', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14, background: '#00274C', display: 'inline-block', padding: '5px 16px', borderRadius: 980 }}>How It Works</div>
             <h2 style={{ fontSize: 50, fontWeight: 800, color: T.text, letterSpacing: '-0.03em', lineHeight: 1.1 }}>Three steps. That is it.</h2>
@@ -416,11 +474,11 @@ export default function App() {
       </section>
 
       {/* CTA */}
-      <section style={{ background: '#00274C', padding: '130px 48px', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
+      <section style={{ background: '#00274C', padding: 'clamp(64px, 10vw, 130px) clamp(20px, 4vw, 48px)', textAlign: 'center', position: 'relative', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 4, background: '#FFCB05' }} />
         <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,203,5,0.08) 0%, transparent 70%)', pointerEvents: 'none' }} />
         <div data-section="cta" className={`section-fade ${vis('cta') ? 'visible' : ''}`} style={{ maxWidth: 640, margin: '0 auto', position: 'relative' }}>
-          <h2 style={{ fontSize: 68, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 20 }}>
+          <h2 className="cta-h2" style={{ fontSize: 68, fontWeight: 900, color: '#fff', letterSpacing: '-0.04em', lineHeight: 1.05, marginBottom: 20 }}>
             Stop scrolling.<br />
             <span style={{ color: '#FFCB05' }}>Start finding.</span>
           </h2>
@@ -435,9 +493,9 @@ export default function App() {
       </section>
 
       {/* FOOTER */}
-      <footer style={{ background: '#00274C', borderTop: '1px solid rgba(255,255,255,0.08)', padding: '40px 48px' }}>
+      <footer style={{ background: '#00274C', borderTop: '1px solid rgba(255,255,255,0.08)', padding: '40px clamp(20px, 4vw, 48px)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20, marginBottom: 28 }}>
+          <div className="footer-top" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 20, marginBottom: 28 }}>
             <SublyWordmark size={28} light />
             <div style={{ display: 'flex', gap: 28 }}>
               {['Privacy', 'Terms', 'Contact', 'Instagram'].map(l => (
