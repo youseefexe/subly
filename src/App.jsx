@@ -104,6 +104,26 @@ const GLOBAL_CSS = `
   .dark-toggle { width: 36px; height: 36px; border-radius: 50%; border: 1.5px solid var(--border); background: var(--bg2); cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; color: var(--text); }
   .dark-toggle:hover { transform: scale(1.1); }
 
+  /* Nav avatar hover scale */
+  .nav-avatar { transition: transform 0.2s ease, box-shadow 0.2s ease !important; }
+  .nav-avatar:hover { transform: scale(1.08) !important; }
+
+  /* Skeleton shimmer */
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .skeleton {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+  [data-theme="dark"] .skeleton {
+    background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s ease infinite;
+  }
+
   .lp-card { background: var(--card); border-radius: 20px; border: 1px solid var(--border); box-shadow: 0 2px 8px var(--card-shadow); }
   .lp-text { color: var(--text); }
   .lp-sub { color: var(--sub); }
@@ -153,6 +173,7 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem('subly_dark') === 'true')
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showAvatarMenu, setShowAvatarMenu] = useState(false)
+  const [browseFilterUserId, setBrowseFilterUserId] = useState(null)
   const avatarRef = useRef(null)
 
   const toggleDark = () => setDarkMode(d => {
@@ -212,10 +233,27 @@ export default function App() {
 
   const vis = id => visibleSections.has(id)
 
-  if (showAuth) return <Auth onBack={() => setShowAuth(false)} onLogin={user => { setCurrentUser(user); setShowAuth(false); setShowDashboard(true) }} initialMode={authMode} darkMode={darkMode} onToggleDark={toggleDark} />
+  if (showAuth) return <Auth onBack={() => setShowAuth(false)} onLogin={async (user) => {
+    setCurrentUser(user)
+    setShowAuth(false)
+    // Save user_type from signup metadata to profiles table
+    const metaType = user.user_metadata?.user_type
+    if (metaType) {
+      supabase.from('profiles').upsert({ id: user.id, user_type: metaType }, { onConflict: 'id' }).then(() => {})
+    }
+    // Resolve user_type: metadata (new signups) or profiles table (returning users)
+    let userType = metaType
+    if (!userType) {
+      const { data } = await supabase.from('profiles').select('user_type').eq('id', user.id).single()
+      userType = data?.user_type
+    }
+    if (userType === 'find') { setShowBrowse(true) }
+    else if (userType === 'list') { setShowPost(true) }
+    else { setShowDashboard(true) }
+  }} initialMode={authMode} darkMode={darkMode} onToggleDark={toggleDark} />
   if (showPost) return <PostListing onBack={() => setShowPost(false)} user={currentUser} onSuccess={(listing) => { setShowPost(false); setNewListingForModal(listing); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
-  if (showBrowse) return <BrowseListings onBack={() => setShowBrowse(false)} onPost={() => { setShowBrowse(false); setShowPost(true) }} onDashboard={() => { setShowBrowse(false); setShowDashboard(true) }} currentUser={currentUser} initialModal={newListingForModal} onModalClear={() => setNewListingForModal(null)} darkMode={darkMode} onToggleDark={toggleDark} onSignIn={() => { setShowBrowse(false); setAuthMode('signin'); setShowAuth(true) }} />
-  if (showDashboard) return <Dashboard user={currentUser} onBack={() => setShowDashboard(false)} onPost={() => { setShowDashboard(false); setShowPost(true) }} onBrowse={() => { setShowDashboard(false); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
+  if (showBrowse) return <BrowseListings onBack={() => { setShowBrowse(false); setBrowseFilterUserId(null) }} onPost={() => { setShowBrowse(false); setShowPost(true) }} onDashboard={() => { setShowBrowse(false); setBrowseFilterUserId(null); setShowDashboard(true) }} currentUser={currentUser} initialModal={newListingForModal} onModalClear={() => setNewListingForModal(null)} darkMode={darkMode} onToggleDark={toggleDark} onSignIn={() => { setShowBrowse(false); setAuthMode('signin'); setShowAuth(true) }} filterUserId={browseFilterUserId} />
+  if (showDashboard) return <Dashboard user={currentUser} onBack={() => setShowDashboard(false)} onPost={() => { setShowDashboard(false); setShowPost(true) }} onBrowse={() => { setShowDashboard(false); setShowBrowse(true) }} onBrowseMine={() => { setShowDashboard(false); setBrowseFilterUserId(currentUser?.id); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
 
   const listing = LISTINGS[activeCard]
   const colors = darkMode ? COLORS_DARK : COLORS
@@ -263,7 +301,8 @@ export default function App() {
               <div ref={avatarRef} style={{ position: 'relative', flexShrink: 0 }}>
                 <div
                   onClick={() => setShowAvatarMenu(m => !m)}
-                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', boxShadow: showAvatarMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s', userSelect: 'none' }}>
+                  className="nav-avatar"
+                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', boxShadow: showAvatarMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s, transform 0.2s ease', userSelect: 'none' }}>
                   {(() => { const u = currentUser.email?.split('@')[0] || ''; return (u[0] + (u[u.length - 1] || '')).toUpperCase() })()}
                 </div>
                 {showAvatarMenu && (
@@ -306,7 +345,9 @@ export default function App() {
               <div className="nav-desktop-auth" style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                 <button className="btn-outline" onClick={() => { setAuthMode('signin'); setShowAuth(true) }} style={{ padding: '9px 20px', fontSize: 13 }}>Sign In</button>
                 <button className="btn-blue" onClick={() => { setAuthMode('signup'); setShowAuth(true) }} style={{ padding: '9px 20px', fontSize: 13 }}>Sign Up</button>
-                <button className="dark-toggle" onClick={toggleDark} title={darkMode ? 'Light mode' : 'Dark mode'}>
+                <button onClick={toggleDark} title={darkMode ? 'Light mode' : 'Dark mode'} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, opacity: 0.4, transition: 'opacity 0.15s', padding: '4px 2px', lineHeight: 1, flexShrink: 0 }}
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '0.4'}>
                   {darkMode ? '☀️' : '🌙'}
                 </button>
               </div>

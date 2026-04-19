@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { supabase } from './supabase'
+import { parseTags } from './utils'
 
 export default function ListingModal({ listing, onClose, darkMode, currentUser, onSignIn }) {
   const dm = darkMode
@@ -8,14 +9,33 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
   const [lightbox, setLightbox] = useState(false)
   const [msgText, setMsgText] = useState('')
   const [msgStatus, setMsgStatus] = useState('idle') // idle | sending | sent | error
-  const isOwnListing = currentUser && listing.user_id && currentUser.id === listing.user_id
+  const [isOwner, setIsOwner] = useState(false)
+
+  useEffect(() => {
+    if (currentUser?.id && listing?.user_id) {
+      setIsOwner(String(currentUser.id).trim() === String(listing.user_id).trim())
+    }
+  }, [currentUser, listing])
 
   const parseImages = (raw) => {
     if (!raw) return []
     try { const p = JSON.parse(raw); return Array.isArray(p) ? p : [raw] } catch { return [raw] }
   }
   const images = parseImages(listing.image_url)
-  const tags = Array.isArray(listing.tags) ? listing.tags : []
+  const tags = parseTags(listing.tags)
+
+  const formatAddress = (address, neighborhood) => {
+    if (!address) return neighborhood || ''
+    const street = address.split(',')[0].trim()
+    const abbr = street
+      .replace(/\bNorth\b/gi, 'N.').replace(/\bSouth\b/gi, 'S.')
+      .replace(/\bEast\b/gi, 'E.').replace(/\bWest\b/gi, 'W.')
+      .replace(/\bStreet\b/gi, 'St.').replace(/\bAvenue\b/gi, 'Ave.')
+      .replace(/\bBoulevard\b/gi, 'Blvd.').replace(/\bDrive\b/gi, 'Dr.')
+      .replace(/\bRoad\b/gi, 'Rd.').replace(/\bLane\b/gi, 'Ln.')
+      .replace(/\bCourt\b/gi, 'Ct.').replace(/\bPlace\b/gi, 'Pl.')
+    return neighborhood ? `${abbr} · ${neighborhood}` : abbr
+  }
 
   useEffect(() => {
     requestAnimationFrame(() => setVisible(true))
@@ -116,7 +136,7 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
           display: flex; align-items: center; justify-content: center; gap: 10px;
           width: 100%; padding: 17px 24px;
           background: #00274C; color: #FFCB05;
-          border: none; border-radius: 14px;
+          border: none; border-radius: 980px;
           font-size: 16px; font-weight: 700; font-family: inherit;
           cursor: pointer; text-decoration: none;
           transition: all 0.2s; letter-spacing: -0.01em;
@@ -134,6 +154,8 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
           .lm-left { width: 100% !important; height: 45vh !important; flex-shrink: 0; }
           .lm-right { width: 100% !important; flex: 1 !important; min-height: 0 !important; }
           .lm-thumbs { display: none !important; }
+          .lm-right-scroll { padding: 32px 24px 0 !important; }
+          .lm-footer { padding: 16px 24px 24px !important; }
         }
         /* Mobile: full screen */
         @media (max-width: 390px) {
@@ -143,6 +165,8 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
           .lm-thumbs { display: none !important; }
           .lm-overlay { padding: 0 !important; align-items: flex-start !important; }
           .lm-close-btn { top: 12px !important; right: 12px !important; }
+          .lm-right-scroll { padding: 24px 20px 0 !important; }
+          .lm-footer { padding: 12px 20px 20px !important; }
         }
       `}</style>
 
@@ -193,7 +217,7 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
             overflow: 'hidden',
             display: 'flex',
             flexDirection: 'row',
-            boxShadow: '0 48px 160px rgba(0,0,0,0.55)',
+            boxShadow: '0 32px 80px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.06)',
           }}
         >
 
@@ -271,6 +295,11 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
             {/* Scrollable content */}
             <div className="lm-right-scroll" style={{ flex: 1, padding: '48px 44px 0' }}>
 
+              {/* Title */}
+              <h2 style={{ fontSize: 30, fontWeight: 800, color: textPrimary, letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 12 }}>
+                {listing.title || listing.address || 'Untitled Listing'}
+              </h2>
+
               {/* Filled badge */}
               {listing.filled && (
                 <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: dm ? 'rgba(255,255,255,0.07)' : '#f0f0f0', color: textFaint, fontSize: 12, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', padding: '5px 12px', borderRadius: 6, marginBottom: 16 }}>
@@ -278,14 +307,9 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
                 </div>
               )}
 
-              {/* Title */}
-              <h2 style={{ fontSize: 30, fontWeight: 800, color: textPrimary, letterSpacing: '-0.04em', lineHeight: 1.15, marginBottom: 10 }}>
-                {listing.title}
-              </h2>
-
               {/* Price */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 16 }}>
-                <span style={{ fontSize: 36, fontWeight: 900, color: '#00274C', letterSpacing: '-0.04em', ...(dm && { color: '#FFCB05' }) }}>
+                <span style={{ fontSize: 36, fontWeight: 900, color: dm ? '#FFCB05' : '#00274C', letterSpacing: '-0.04em' }}>
                   ${Number(listing.price).toLocaleString()}
                 </span>
                 <span style={{ fontSize: 16, color: textFaint, fontWeight: 500 }}>/mo</span>
@@ -296,7 +320,7 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
-                {listing.address}
+                {formatAddress(listing.address, listing.neighborhood)}
               </div>
 
               {/* Divider */}
@@ -368,8 +392,8 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
             </div>
 
             {/* ── STICKY FOOTER: MESSAGE FORM ── */}
-            <div style={{ padding: '20px 44px 28px', borderTop: `1px solid ${border}`, background: panelBg, flexShrink: 0 }}>
-              {isOwnListing ? (
+            <div className="lm-footer" style={{ padding: '20px 44px 28px', borderTop: `1px solid ${border}`, background: panelBg, flexShrink: 0 }}>
+              {isOwner ? (
                 <div style={{ textAlign: 'center', padding: '12px', background: dm ? 'rgba(255,255,255,0.05)' : '#f5f5f7', borderRadius: 12, color: textSub, fontSize: 13 }}>
                   This is your listing
                 </div>

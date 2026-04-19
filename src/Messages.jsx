@@ -131,8 +131,24 @@ export default function Messages({ user, darkMode }) {
   const border = dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', color: ts, fontFamily: 'Inter, sans-serif' }}>
-      Loading messages...
+    <div style={{ display: 'flex', height: 'calc(100vh - 0px)', overflow: 'hidden', fontFamily: 'Inter, sans-serif' }}>
+      <div style={{ width: 300, flexShrink: 0, borderRight: `1px solid ${border}`, background: panelBg, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '20px 20px 14px', borderBottom: `1px solid ${border}` }}>
+          <div style={{ height: 20, width: 120, borderRadius: 6, background: dm ? '#2c2c2e' : '#f0f0f0', marginBottom: 8 }} />
+          <div style={{ height: 14, width: 80, borderRadius: 6, background: dm ? '#2c2c2e' : '#f0f0f0' }} />
+        </div>
+        {[1,2,3].map(n => (
+          <div key={n} style={{ padding: '13px 16px', borderBottom: `1px solid ${border}` }}>
+            <div style={{ height: 14, width: '70%', borderRadius: 6, background: dm ? '#2c2c2e' : '#f0f0f0', marginBottom: 8 }} />
+            <div style={{ height: 12, width: '50%', borderRadius: 6, background: dm ? '#2c2c2e' : '#f0f0f0', marginBottom: 6 }} />
+            <div style={{ height: 12, width: '80%', borderRadius: 6, background: dm ? '#2c2c2e' : '#f0f0f0' }} />
+          </div>
+        ))}
+      </div>
+      <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: mainBg }}>
+        <div style={{ width: 32, height: 32, borderRadius: '50%', border: `3px solid ${dm ? '#FFCB05' : '#00274C'}`, borderTopColor: 'transparent', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
     </div>
   )
 
@@ -147,10 +163,10 @@ export default function Messages({ user, darkMode }) {
         </div>
 
         {conversations.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: ts }}>
-            <div style={{ fontSize: 36, marginBottom: 12 }}>✉️</div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: tp, marginBottom: 6 }}>No messages yet</div>
-            <div style={{ fontSize: 13 }}>Contact a lister from a listing page to start a conversation.</div>
+          <div style={{ textAlign: 'center', padding: '48px 20px', color: ts, flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: '50%', background: dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,39,76,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16, fontSize: 28 }}>✉️</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: tp, marginBottom: 8, letterSpacing: '-0.01em' }}>No messages yet</div>
+            <div style={{ fontSize: 13, lineHeight: 1.55, color: ts }}>Browse listings and reach out to find your perfect sublease.</div>
           </div>
         ) : (
           conversations.map(conv => {
@@ -219,7 +235,7 @@ export default function Messages({ user, darkMode }) {
                 rows={2}
                 style={{ flex: 1, background: dm ? '#2c2c2e' : '#f5f5f7', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, borderRadius: 12, padding: '10px 14px', fontSize: 14, fontFamily: 'Inter, sans-serif', color: tp, resize: 'none', outline: 'none', lineHeight: 1.5, transition: 'border-color 0.2s' }}
               />
-              <button onClick={sendReply} disabled={!reply.trim() || sending} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 12, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: !reply.trim() || sending ? 'not-allowed' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: !reply.trim() ? 0.5 : 1, transition: 'all 0.2s', height: 44 }}>
+              <button onClick={sendReply} disabled={!reply.trim() || sending} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '10px 18px', fontSize: 14, fontWeight: 700, cursor: !reply.trim() || sending ? 'not-allowed' : 'pointer', fontFamily: 'inherit', flexShrink: 0, opacity: !reply.trim() ? 0.5 : 1, transition: 'all 0.2s', height: 44 }}>
                 {sending ? '…' : 'Send'}
               </button>
             </div>
@@ -228,9 +244,9 @@ export default function Messages({ user, darkMode }) {
       ) : (
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: mainBg }}>
           <div style={{ textAlign: 'center', color: ts }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>💬</div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: tp, marginBottom: 6 }}>Select a conversation</div>
-            <div style={{ fontSize: 13 }}>Choose from the list to read messages</div>
+            <div style={{ width: 72, height: 72, borderRadius: '50%', background: dm ? 'rgba(255,255,255,0.05)' : 'rgba(0,39,76,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 32 }}>💬</div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: tp, marginBottom: 6, letterSpacing: '-0.01em' }}>Select a conversation</div>
+            <div style={{ fontSize: 13, color: ts }}>Choose from the list to read messages</div>
           </div>
         </div>
       )}

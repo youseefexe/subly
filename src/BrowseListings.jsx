@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { createPortal } from 'react-dom'
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet'
+import { MapContainer, TileLayer, Marker, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import L from 'leaflet'
 import { supabase } from './supabase'
+import { parseTags } from './utils'
 import { SublyWordmark } from './Logo'
 import ListingModal from './ListingModal'
 
@@ -20,7 +21,7 @@ const UMichIcon = L.divIcon({
   iconSize: [44, 44], iconAnchor: [22, 44], popupAnchor: [0, -48],
 })
 
-const TAGS = ['Utilities included', 'In-unit washer/dryer', 'Parking included', 'Pet friendly', 'Furnished', 'A/C', 'Dishwasher', 'Gym access', 'Near bus line', 'Private bathroom', 'Short term ok', 'Bills split']
+const TAGS = ['Utilities included', 'In-unit washer/dryer', 'Parking included', 'Pet friendly', 'Furnished', 'A/C', 'Dishwasher', 'Gym access', 'Near bus line', 'Private bathroom', 'Short term ok', 'Bills split', 'Negotiable']
 const NEIGHBORHOODS = ['Central Campus', 'North Campus', 'South Campus', 'Kerrytown', 'Burns Park', 'Old West Side', 'Downtown Ann Arbor', 'Near Northside', 'Water Hill', 'Other']
 
 const getCoverImage = (raw) => {
@@ -112,7 +113,82 @@ function FilterPill({ label, active, onClear, children, dm }) {
   )
 }
 
-export default function BrowseListings({ onBack, onPost, onDashboard, currentUser, initialModal, onModalClear, darkMode, onToggleDark, onSignIn }) {
+function MapTooltip({ listing, latLng, dm }) {
+  const map = useMap()
+  const [pos, setPos] = useState(null)
+
+  useEffect(() => {
+    if (!listing || !latLng) { setPos(null); return }
+    const update = () => {
+      const pt = map.latLngToContainerPoint(latLng)
+      const rect = map.getContainer().getBoundingClientRect()
+      setPos({ x: rect.left + pt.x, y: rect.top + pt.y })
+    }
+    update()
+    map.on('move zoom moveend zoomend', update)
+    return () => { map.off('move zoom moveend zoomend', update) }
+  }, [listing, latLng, map])
+
+  if (!listing || !pos) return null
+
+  const cover = (() => {
+    const raw = listing.image_url
+    if (!raw) return null
+    try { const p = JSON.parse(raw); return Array.isArray(p) ? p[0] : raw } catch { return raw }
+  })()
+
+  // pos.y is the marker anchor (bottom of the 44px icon).
+  // We position the tooltip's bottom edge just above the icon top (pos.y - 44 - 8).
+  return createPortal(
+    <div style={{
+      position: 'fixed',
+      left: pos.x,
+      top: pos.y - 44 - 8,
+      transform: 'translate(-50%, -100%)',
+      zIndex: 99999,
+      pointerEvents: 'none',
+      fontFamily: 'Inter, sans-serif',
+      animation: 'pop-in 0.15s ease',
+    }}>
+      <div style={{
+        background: dm ? '#1c1c1e' : '#fff',
+        borderRadius: 14,
+        boxShadow: '0 8px 32px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.1)',
+        border: `1px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.07)'}`,
+        overflow: 'hidden',
+        width: 220,
+      }}>
+        {cover && (
+          <img src={cover} alt="" style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }} />
+        )}
+        <div style={{ padding: '12px 14px' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: dm ? '#f5f5f7' : '#1d1d1f', marginBottom: 5, lineHeight: 1.3 }}>
+            {listing.title || 'Untitled Listing'}
+          </div>
+          <div style={{ fontSize: 19, fontWeight: 800, color: dm ? '#FFCB05' : '#00274C', letterSpacing: '-0.03em', marginBottom: 3 }}>
+            ${Number(listing.price).toLocaleString()}
+            <span style={{ fontSize: 12, fontWeight: 500, color: dm ? '#636366' : '#aeaeb2', marginLeft: 2 }}>/mo</span>
+          </div>
+          {listing.beds && (
+            <div style={{ fontSize: 12, color: dm ? '#8e8e93' : '#6e6e73' }}>{listing.beds}</div>
+          )}
+        </div>
+      </div>
+      {/* Down-pointing arrow */}
+      <div style={{ display: 'flex', justifyContent: 'center' }}>
+        <div style={{
+          width: 0, height: 0,
+          borderLeft: '9px solid transparent',
+          borderRight: '9px solid transparent',
+          borderTop: `9px solid ${dm ? '#1c1c1e' : '#fff'}`,
+        }} />
+      </div>
+    </div>,
+    document.body
+  )
+}
+
+export default function BrowseListings({ onBack, onPost, onDashboard, currentUser, initialModal, onModalClear, darkMode, onToggleDark, onSignIn, filterUserId }) {
   const dm = darkMode
   const [listings, setListings] = useState([])
   const [filtered, setFiltered] = useState([])
@@ -129,9 +205,12 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
   const [selectedTags, setSelectedTags] = useState([])
   const [neighborhood, setNeighborhood] = useState('Any')
   const [hideFilled, setHideFilled] = useState(false)
+  const [hoveredListing, setHoveredListing] = useState(null)
+  const [hoveredLatLng, setHoveredLatLng] = useState(null)
+  const [expandedBuildings, setExpandedBuildings] = useState(new Set())
   const MAX_SLIDER = 3000
 
-  useEffect(() => { fetchListings() }, [])
+  useEffect(() => { fetchListings() }, [filterUserId])
   useEffect(() => { if (initialModal) { setModalListing(initialModal); if (onModalClear) onModalClear() } }, [initialModal])
   useEffect(() => {
     if (window.innerWidth <= 390) setView('list')
@@ -139,7 +218,9 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
 
   const fetchListings = async () => {
     setLoading(true)
-    const { data, error } = await supabase.from('listings').select('*')
+    let query = supabase.from('listings').select('*')
+    if (filterUserId) query = query.eq('user_id', filterUserId)
+    const { data, error } = await query
     if (!error && data) { setListings(data); setFiltered(data); geocodeAll(data) }
     setLoading(false)
   }
@@ -160,7 +241,7 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
 
   useEffect(() => {
     let result = [...listings]
-    if (search) result = result.filter(l => l.title?.toLowerCase().includes(search.toLowerCase()) || l.address?.toLowerCase().includes(search.toLowerCase()))
+    if (search) result = result.filter(l => l.title?.toLowerCase().includes(search.toLowerCase()) || l.address?.toLowerCase().includes(search.toLowerCase()) || l.building_name?.toLowerCase().includes(search.toLowerCase()))
     if (beds !== 'Any') result = result.filter(l => l.beds === beds)
     if (priceActive) result = result.filter(l => l.price <= maxPrice)
     if (dateFrom) {
@@ -173,7 +254,7 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
     }
     if (selectedTags.length > 0) {
       result = result.filter(l => {
-        const lt = Array.isArray(l.tags) ? l.tags : (l.tags ? [l.tags] : [])
+        const lt = parseTags(l.tags)
         return selectedTags.every(t => lt.includes(t))
       })
     }
@@ -183,6 +264,11 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
   }, [search, beds, maxPrice, priceActive, dateFrom, dateTo, selectedTags, neighborhood, hideFilled, listings])
 
   const clearAll = () => { setBeds('Any'); setMaxPrice(3000); setPriceActive(false); setDateFrom(''); setDateTo(''); setSelectedTags([]); setNeighborhood('Any'); setHideFilled(false) }
+  const toggleBuilding = (name) => setExpandedBuildings(prev => {
+    const next = new Set(prev)
+    next.has(name) ? next.delete(name) : next.add(name)
+    return next
+  })
   const anyActive = beds !== 'Any' || priceActive || dateFrom || dateTo || selectedTags.length > 0 || neighborhood !== 'Any' || hideFilled
   const mapCenter = [42.2808, -83.7430]
 
@@ -217,12 +303,41 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
         .date-input { width: 100%; border: 1.5px solid rgba(0,39,76,0.12); border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: inherit; color: #1d1d1f; outline: none; transition: border-color 0.2s; background: #fff; }
         .date-input:focus { border-color: #00274C; }
         .leaflet-container { height: 100%; width: 100%; }
-        .leaflet-popup-content-wrapper { border-radius: 12px !important; box-shadow: 0 8px 24px rgba(0,0,0,0.12) !important; }
+        .listing-tile.map-hovered { border-color: #00274C !important; box-shadow: 0 0 0 2px rgba(0,39,76,0.15), 0 12px 36px rgba(0,39,76,0.13) !important; background: rgba(0,39,76,0.02) !important; transform: translateY(-3px) !important; }
+        [data-theme="dark"] .listing-tile.map-hovered { border-color: #FFCB05 !important; box-shadow: 0 0 0 2px rgba(255,203,5,0.25), 0 12px 36px rgba(0,0,0,0.4) !important; background: rgba(255,203,5,0.03) !important; }
         .leaflet-popup-tip { display: none; }
         ::-webkit-scrollbar { width: 4px; }
         ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 4px; }
         .dark-toggle { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; border: 1.5px solid; }
         .dark-toggle:hover { transform: scale(1.1); }
+        .browse-avatar { transition: transform 0.2s ease, box-shadow 0.15s !important; }
+        .browse-avatar:hover { transform: scale(1.08) !important; }
+        .filter-bar::-webkit-scrollbar { display: none; }
+
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s ease infinite;
+        }
+        [data-theme="dark"] .skeleton {
+          background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s ease infinite;
+        }
+        .building-card { background: #fff; border-radius: 16px; border: 2px solid rgba(0,39,76,0.14); overflow: hidden; transition: box-shadow 0.2s; }
+        .building-card:hover { box-shadow: 0 8px 28px rgba(0,39,76,0.1); }
+        .building-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; cursor: pointer; transition: background 0.15s; }
+        .building-header:hover { background: rgba(0,39,76,0.025); }
+        [data-theme="dark"] .building-card { background: #1c1c1e; border-color: rgba(255,203,5,0.18); }
+        [data-theme="dark"] .building-card:hover { box-shadow: 0 8px 28px rgba(0,0,0,0.4); }
+        [data-theme="dark"] .building-header:hover { background: rgba(255,203,5,0.04); }
+        .filter-bar-wrap { position: relative; }
+        .filter-bar-wrap::after { content: ''; position: absolute; right: 0; top: 0; bottom: 0; width: 48px; background: linear-gradient(to left, #fff 0%, rgba(255,255,255,0) 100%); pointer-events: none; z-index: 1; }
+        [data-theme="dark"] .filter-bar-wrap::after { background: linear-gradient(to left, #1c1c1e 0%, rgba(28,28,30,0) 100%); }
         [data-theme="dark"] body { background: #0f0f11; }
         [data-theme="dark"] .listing-tile { background: #1c1c1e; border-color: rgba(255,255,255,0.08); }
         [data-theme="dark"] .listing-tile:hover { box-shadow: 0 12px 36px rgba(0,0,0,0.4); border-color: rgba(255,255,255,0.14); }
@@ -296,7 +411,7 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
                 className="browse-avatar"
                 onClick={onDashboard}
                 title="My Dashboard"
-                style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s', userSelect: 'none' }}
+                style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', flexShrink: 0, boxShadow: '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s, transform 0.2s ease', userSelect: 'none' }}
                 onMouseEnter={e => e.currentTarget.style.boxShadow = '0 0 0 3px rgba(0,39,76,0.2)'}
                 onMouseLeave={e => e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,39,76,0.25)'}>
                 {(() => { const u = currentUser.email?.split('@')[0] || ''; return (u[0] + (u[u.length - 1] || '')).toUpperCase() })()}
@@ -306,7 +421,8 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
         </nav>
 
         {/* FILTER BAR */}
-        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 9999, position: 'relative', scrollbarWidth: 'none' }}>
+        <div className="filter-bar-wrap" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, flexShrink: 0, zIndex: 9999 }}>
+        <div className="filter-bar" style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
 
           <FilterPill label={dateFrom || dateTo ? `${dateFrom || '...'} → ${dateTo || '...'}` : '📅 Dates'} active={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo('') }} dm={dm}>
             <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>From</div>
@@ -385,6 +501,7 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
             {filtered.length} listing{filtered.length !== 1 ? 's' : ''}
           </span>
         </div>
+        </div>
 
         {/* MAIN */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden', position: 'relative' }}>
@@ -392,52 +509,141 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
           {/* LISTINGS */}
           {view !== 'map' && (
             <div className="listings-panel" style={{ width: view === 'split' ? '50%' : '100%', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: 12, background: dm ? '#0f0f11' : '#f5f5f7' }}>
+              {filterUserId && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.06)', border: `1px solid ${dm ? 'rgba(255,203,5,0.2)' : 'rgba(0,39,76,0.12)'}`, borderRadius: 12, padding: '10px 16px' }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: dm ? '#FFCB05' : '#00274C' }}>👤 Showing your listings only</span>
+                  <button onClick={onBack} style={{ background: 'none', border: 'none', fontSize: 12, color: dm ? '#8e8e93' : '#6e6e73', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 500 }}>View all listings →</button>
+                </div>
+              )}
               {loading ? (
-                <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                  <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                  <p style={{ color: dm ? '#636366' : '#aeaeb2', fontSize: 14 }}>Loading listings...</p>
-                </div>
+                [1,2,3,4].map(n => (
+                  <div key={n} style={{ background: dm ? '#1c1c1e' : '#fff', borderRadius: 16, overflow: 'hidden', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}` }}>
+                    <div className="skeleton" style={{ height: 180 }} />
+                    <div style={{ padding: '14px 16px' }}>
+                      <div className="skeleton" style={{ height: 14, width: '70%', borderRadius: 6, marginBottom: 8 }} />
+                      <div className="skeleton" style={{ height: 12, width: '50%', borderRadius: 6, marginBottom: 10 }} />
+                      <div style={{ display: 'flex', gap: 6 }}>
+                        <div className="skeleton" style={{ height: 22, width: 60, borderRadius: 980 }} />
+                        <div className="skeleton" style={{ height: 22, width: 80, borderRadius: 980 }} />
+                      </div>
+                    </div>
+                  </div>
+                ))
               ) : filtered.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '60px 0' }}>
-                  <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
-                  <p style={{ color: dm ? '#f5f5f7' : '#1d1d1f', fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No listings found</p>
-                  <p style={{ color: dm ? '#636366' : '#aeaeb2', fontSize: 14, marginBottom: 16 }}>Try adjusting your filters.</p>
-                  {anyActive && <button onClick={clearAll} style={{ background: 'none', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,39,76,0.2)'}`, borderRadius: 980, padding: '8px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: dm ? '#f5f5f7' : '#00274C' }}>Clear filters</button>}
+                <div style={{ textAlign: 'center', padding: '60px 24px' }}>
+                  <div style={{ width: 72, height: 72, borderRadius: '50%', background: dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,39,76,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 32 }}>🔍</div>
+                  <p style={{ color: dm ? '#f5f5f7' : '#1d1d1f', fontSize: 17, fontWeight: 700, marginBottom: 6, letterSpacing: '-0.01em' }}>No listings match your search</p>
+                  <p style={{ color: dm ? '#636366' : '#aeaeb2', fontSize: 14, marginBottom: 20, lineHeight: 1.5 }}>{anyActive ? 'Try adjusting or clearing your filters to see more results.' : 'No subleases have been posted yet. Check back soon!'}</p>
+                  {anyActive && <button onClick={clearAll} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '10px 24px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.2s' }}>Clear filters</button>}
                 </div>
-              ) : (
-                filtered.map(listing => (
-                  <div key={listing.id} className="listing-tile" onClick={() => setModalListing(listing)} style={{ opacity: listing.filled ? 0.75 : 1 }}>
-                    <div style={{ height: 180, background: dm ? '#2c2c2e' : '#f0f4ff', position: 'relative', overflow: 'hidden' }}>
+              ) : (() => {
+                // Group by building_name — buildings with 2+ listings get a card header
+                const buildingGroups = {}
+                filtered.forEach(l => {
+                  if (l.building_name) {
+                    if (!buildingGroups[l.building_name]) buildingGroups[l.building_name] = []
+                    buildingGroups[l.building_name].push(l)
+                  }
+                })
+                const usedIds = new Set()
+                const items = []
+                filtered.forEach(listing => {
+                  const bn = listing.building_name
+                  if (bn && buildingGroups[bn].length > 1) {
+                    if (!usedIds.has(`b:${bn}`)) {
+                      items.push({ type: 'building', name: bn, listings: buildingGroups[bn] })
+                      usedIds.add(`b:${bn}`)
+                      buildingGroups[bn].forEach(l => usedIds.add(l.id))
+                    }
+                  } else if (!usedIds.has(listing.id)) {
+                    items.push({ type: 'standalone', listing })
+                    usedIds.add(listing.id)
+                  }
+                })
+
+                const renderTile = (listing, compact = false) => (
+                  <div key={listing.id} className={`listing-tile${hoveredListing?.id === listing.id ? ' map-hovered' : ''}`} onClick={() => setModalListing(listing)} style={{ opacity: listing.filled ? 0.75 : 1, marginBottom: compact ? 8 : 0 }}>
+                    <div style={{ height: compact ? 120 : 180, background: dm ? '#2c2c2e' : '#f0f4ff', position: 'relative', overflow: 'hidden' }}>
                       {getCoverImage(listing.image_url)
                         ? <img src={getCoverImage(listing.image_url)} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🏠</div>
+                        : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🏠</div>
                       }
-                      <div style={{ position: 'absolute', top: 10, right: 10, background: 'rgba(0,39,76,0.88)', color: '#FFCB05', fontSize: 14, fontWeight: 800, padding: '4px 12px', borderRadius: 980 }}>${listing.price}/mo</div>
-                      <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 6 }}>
+                      <div style={{ position: 'absolute', top: 8, right: 8, background: 'rgba(0,39,76,0.88)', color: '#FFCB05', fontSize: 13, fontWeight: 800, padding: '3px 10px', borderRadius: 980 }}>${listing.price}/mo</div>
+                      <div style={{ position: 'absolute', bottom: 8, left: 8, display: 'flex', gap: 6 }}>
                         {listing.filled
                           ? <span style={{ fontSize: 11, fontWeight: 600, background: 'rgba(0,0,0,0.55)', color: '#e5e5ea', padding: '3px 10px', borderRadius: 980 }}>Filled</span>
                           : <span className="pill pill-green">✓ Verified</span>
                         }
                       </div>
                     </div>
-                    <div style={{ padding: '14px 16px' }}>
-                      <h3 style={{ fontSize: 15, fontWeight: 700, color: dm ? '#f5f5f7' : '#1d1d1f', marginBottom: 4 }}>{listing.title}</h3>
-                      <p style={{ fontSize: 13, color: dm ? '#636366' : '#aeaeb2', marginBottom: 10 }}>📍 {listing.address}</p>
-                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                    <div style={{ padding: '12px 14px' }}>
+                      <h3 style={{ fontSize: 14, fontWeight: 700, color: dm ? '#f5f5f7' : '#1d1d1f', marginBottom: 3 }}>{listing.title}</h3>
+                      <p style={{ fontSize: 12, color: dm ? '#636366' : '#aeaeb2', marginBottom: 8 }}>📍 {listing.address}</p>
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
                         {listing.beds && <span className="pill">{listing.beds}</span>}
                         {listing.neighborhood && <span className="pill pill-blue">📍 {listing.neighborhood}</span>}
                         {listing.dates && <span className="pill pill-gold">{listing.dates}</span>}
-                        {Array.isArray(listing.tags) && listing.tags.slice(0, 2).map(tag => (
-                          <span key={tag} className="pill pill-blue">{tag}</span>
-                        ))}
-                        {Array.isArray(listing.tags) && listing.tags.length > 2 && (
-                          <span className="pill">+{listing.tags.length - 2} more</span>
-                        )}
                       </div>
+                      {(() => {
+                        const allTags = parseTags(listing.tags)
+                        if (allTags.length === 0) return null
+                        const shown = allTags.slice(0, 3)
+                        const extra = allTags.length - shown.length
+                        return (
+                          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                            {shown.map(tag => (
+                              <span key={tag} style={{ fontSize: 11, fontWeight: 500, background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.07)', color: dm ? '#FFCB05' : '#00274C', padding: '3px 9px', borderRadius: 980 }}>{tag}</span>
+                            ))}
+                            {extra > 0 && (
+                              <span style={{ fontSize: 11, fontWeight: 500, background: dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)', color: dm ? '#8e8e93' : '#6e6e73', padding: '3px 9px', borderRadius: 980 }}>+{extra} more</span>
+                            )}
+                          </div>
+                        )
+                      })()}
                     </div>
                   </div>
-                ))
-              )}
+                )
+
+                return items.map(item => {
+                  if (item.type === 'standalone') return renderTile(item.listing)
+
+                  // Building group card
+                  const available = item.listings.filter(l => !l.filled)
+                  const prices = item.listings.map(l => l.price).filter(Boolean)
+                  const minP = Math.min(...prices)
+                  const maxP = Math.max(...prices)
+                  const priceRange = prices.length === 0 ? '' : minP === maxP ? `$${minP.toLocaleString()}/mo` : `$${minP.toLocaleString()} – $${maxP.toLocaleString()}/mo`
+                  const expanded = expandedBuildings.has(item.name)
+
+                  return (
+                    <div key={`building-${item.name}`} className="building-card">
+                      <div className="building-header" onClick={() => toggleBuilding(item.name)}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <div style={{ width: 44, height: 44, borderRadius: 12, background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>🏢</div>
+                          <div>
+                            <div style={{ fontSize: 15, fontWeight: 700, color: dm ? '#f5f5f7' : '#1d1d1f', marginBottom: 2 }}>{item.name}</div>
+                            <div style={{ fontSize: 12, color: dm ? '#8e8e93' : '#6e6e73', display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span style={{ background: dm ? 'rgba(52,199,89,0.12)' : 'rgba(52,199,89,0.1)', color: dm ? '#34c759' : '#1a8c39', fontWeight: 600, padding: '2px 8px', borderRadius: 980, fontSize: 11 }}>
+                                {available.length} unit{available.length !== 1 ? 's' : ''} available
+                              </span>
+                              {priceRange && <span style={{ color: dm ? '#FFCB05' : '#00274C', fontWeight: 600 }}>{priceRange}</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                          <span style={{ fontSize: 12, color: dm ? '#8e8e93' : '#6e6e73', fontWeight: 500 }}>{expanded ? 'Collapse' : 'View units'}</span>
+                          <span style={{ fontSize: 16, color: dm ? '#8e8e93' : '#aeaeb2', display: 'inline-block', transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}>▾</span>
+                        </div>
+                      </div>
+                      {expanded && (
+                        <div style={{ borderTop: `1px solid ${dm ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 10px 2px' }}>
+                          {item.listings.map(l => renderTile(l, true))}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })
+              })()}
             </div>
           )}
 
@@ -455,21 +661,21 @@ export default function BrowseListings({ onBack, onPost, onDashboard, currentUse
                 {filtered.map(listing => {
                   const coords = geocoded[listing.id]
                   if (!coords) return null
+                  const latLng = [coords.lat, coords.lng]
                   return (
-                    <Marker key={listing.id} position={[coords.lat, coords.lng]} icon={UMichIcon} eventHandlers={{ click: () => setModalListing(listing) }}>
-                      <Popup>
-                        <div style={{ fontFamily: 'Inter, sans-serif', minWidth: 200 }}>
-                          {listing.image_url && <img src={listing.image_url} alt={listing.title} style={{ width: '100%', height: 100, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />}
-                          <div style={{ fontWeight: 700, fontSize: 14, color: '#00274C', marginBottom: 2 }}>{listing.title}</div>
-                          <div style={{ fontSize: 12, color: '#6e6e73', marginBottom: 6 }}>{listing.address}</div>
-                          <div style={{ fontSize: 16, fontWeight: 800, color: '#00274C' }}>${listing.price}/mo</div>
-                          {listing.beds && <div style={{ fontSize: 11, color: '#6e6e73', marginTop: 4 }}>{listing.beds} · {listing.dates}</div>}
-                          <button onClick={() => setModalListing(listing)} style={{ marginTop: 8, width: '100%', background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 8, padding: '7px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>View details</button>
-                        </div>
-                      </Popup>
-                    </Marker>
+                    <Marker
+                      key={listing.id}
+                      position={latLng}
+                      icon={UMichIcon}
+                      eventHandlers={{
+                        click: () => setModalListing(listing),
+                        mouseover: () => { setHoveredListing(listing); setHoveredLatLng(latLng) },
+                        mouseout: () => { setHoveredListing(null); setHoveredLatLng(null) },
+                      }}
+                    />
                   )
                 })}
+                <MapTooltip listing={hoveredListing} latLng={hoveredLatLng} dm={dm} />
               </MapContainer>
             </div>
           )}

@@ -38,7 +38,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
   const totalImages = editImages.length + newImages.length
 
   useEffect(() => {
-    fetchMyListings()
+    if (user?.id) fetchMyListings()
     supabase.from('messages').select('id', { count: 'exact', head: true })
       .eq('recipient_id', user?.id).eq('read', false)
       .then(({ count }) => setUnreadCount(count || 0)).catch(() => {})
@@ -64,12 +64,16 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
       if (msgChannelRef.current) { supabase.removeChannel(msgChannelRef.current); msgChannelRef.current = null }
       document.removeEventListener('mousedown', onOutside)
     }
-  }, [])
+  }, [user?.id])
 
   const fetchMyListings = async () => {
+    if (!user?.id) return
+    console.log('[Dashboard] fetchMyListings — user.id:', user?.id)
     setLoading(true)
     const { data, error } = await supabase.from('listings').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+    console.log('[Dashboard] listings result:', { data, error, userId: user?.id })
     if (!error && data) setListings(data)
+    else if (error) console.error('[Dashboard] listings fetch error:', error)
     setLoading(false)
   }
 
@@ -153,19 +157,21 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
         .db-tab { background: none; border: none; font-family: inherit; cursor: pointer; padding: 6px 14px; border-radius: 8px; font-size: 14px; font-weight: 500; transition: all 0.15s; white-space: nowrap; position: relative; }
         .db-tab.active { font-weight: 700; }
 
-        .field-input { width: 100%; background: #fff; border: 1.5px solid rgba(0,39,76,0.12); border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #1d1d1f; transition: all 0.2s; outline: none; }
-        .field-input:focus { border-color: #00274C; box-shadow: 0 0 0 3px rgba(0,39,76,0.08); }
-        .field-input::placeholder { color: #c7c7cc; }
+        .field-input { width: 100%; background: #f7f7f8; border: 1.5px solid transparent; border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; color: #1d1d1f; transition: all 0.2s; outline: none; }
+        .field-input:focus { background: #fff; border-color: #00274C; box-shadow: 0 0 0 3px rgba(0,39,76,0.08); }
+        .field-input::placeholder { color: #aeaeb2; }
         [data-theme="dark"] .field-input { background: #2c2c2e; border-color: rgba(255,255,255,0.1); color: #f5f5f7; }
         [data-theme="dark"] .field-input::placeholder { color: #636366; }
         [data-theme="dark"] .field-input:focus { border-color: #FFCB05; box-shadow: 0 0 0 3px rgba(255,203,5,0.1); }
 
-        .listing-card { background: #fff; border-radius: 16px; border: 1px solid rgba(0,0,0,0.07); overflow: hidden; transition: box-shadow 0.2s; }
-        .listing-card:hover { box-shadow: 0 4px 24px rgba(0,39,76,0.08); }
+        .listing-card { background: #fff; border-radius: 16px; border: 1px solid rgba(0,0,0,0.07); overflow: hidden; transition: box-shadow 0.2s, transform 0.2s; }
+        .listing-card:hover { box-shadow: 0 8px 32px rgba(0,39,76,0.12); transform: translateY(-2px); }
         [data-theme="dark"] .listing-card { background: #1c1c1e; border-color: rgba(255,255,255,0.08); }
+        [data-theme="dark"] .listing-card:hover { box-shadow: 0 8px 32px rgba(0,0,0,0.35); }
 
-        .btn-primary { background: #00274C; color: #FFCB05; border: none; border-radius: 10px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; }
-        .btn-primary:hover { background: #003a6e; }
+        .btn-primary { background: #00274C; color: #FFCB05; border: none; border-radius: 980px; padding: 10px 22px; font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.2s; letter-spacing: -0.01em; }
+        .btn-primary:hover { background: #003a6e; box-shadow: 0 6px 20px rgba(0,39,76,0.22); transform: translateY(-1px); }
+        .btn-primary:active { transform: scale(0.98); }
         .btn-danger { background: rgba(255,59,48,0.08); color: #ff3b30; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
         .btn-danger:hover { background: rgba(255,59,48,0.14); }
         .btn-edit { background: rgba(0,39,76,0.06); color: #00274C; border: none; border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit; transition: background 0.15s; }
@@ -183,20 +189,41 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
         .img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .img-thumb .rm { position: absolute; top: 5px; right: 5px; width: 22px; height: 22px; border-radius: 50%; background: rgba(0,0,0,0.6); color: #fff; border: none; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; opacity: 0; transition: opacity 0.2s; font-family: inherit; }
         .img-thumb:hover .rm { opacity: 1; }
-        .drop-zone { border: 2px dashed rgba(0,39,76,0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #fafaf8; }
+        .drop-zone { border: 2px dashed rgba(0,39,76,0.2); border-radius: 12px; padding: 24px; text-align: center; cursor: pointer; transition: all 0.2s; background: #f7f7f8; }
         .drop-zone:hover { border-color: #00274C; background: rgba(0,39,76,0.03); }
         [data-theme="dark"] .drop-zone { background: #2c2c2e; border-color: rgba(255,255,255,0.15); }
+        [data-theme="dark"] .drop-zone:hover { border-color: #FFCB05; background: rgba(255,203,5,0.05); }
 
         .quick-action-card { border-radius: 18px; border: 1.5px solid; padding: 28px; cursor: pointer; transition: all 0.2s; text-align: left; background: none; font-family: inherit; width: 100%; }
         .quick-action-card:hover { transform: translateY(-2px); }
 
         .dark-toggle-btn { width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 14px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all 0.2s; border: 1.5px solid; }
         .dark-toggle-btn:hover { transform: scale(1.1); }
+        .db-avatar { transition: transform 0.2s ease, box-shadow 0.15s !important; }
+        .db-avatar:hover { transform: scale(1.08) !important; }
+
+        @keyframes shimmer {
+          0% { background-position: -200% 0; }
+          100% { background-position: 200% 0; }
+        }
+        .skeleton {
+          background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s ease infinite;
+        }
+        [data-theme="dark"] .skeleton {
+          background: linear-gradient(90deg, #2c2c2e 25%, #3a3a3c 50%, #2c2c2e 75%);
+          background-size: 200% 100%;
+          animation: shimmer 1.4s ease infinite;
+        }
 
         .user-row-btn { width: 100%; padding: 10px 16px; background: none; border: none; font-size: 14px; font-weight: 500; cursor: pointer; font-family: inherit; text-align: left; display: flex; align-items: center; gap: 10px; transition: background 0.12s; }
 
         /* Mobile bottom nav */
         .db-bottom-nav { display: none; }
+        @media (max-width: 900px) {
+          .stat-grid { grid-template-columns: 1fr 1fr !important; }
+        }
         @media (max-width: 640px) {
           .db-tab-bar { display: none !important; }
           .db-bottom-nav { display: flex !important; position: fixed; bottom: 0; left: 0; right: 0; height: 60px; z-index: 100; border-top: 1px solid; align-items: stretch; }
@@ -205,6 +232,9 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
           .quick-grid { grid-template-columns: 1fr !important; }
           .modal { max-width: 100% !important; border-radius: 16px 16px 0 0 !important; }
           .modal-overlay { padding: 0 !important; align-items: flex-end !important; }
+        }
+        @media (max-width: 440px) {
+          .stat-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
@@ -238,14 +268,12 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
 
             {/* Right side */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginLeft: 'auto' }}>
-              <button className="dark-toggle-btn" onClick={onToggleDark} style={{ borderColor: dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.1)', background: dm ? 'rgba(255,255,255,0.07)' : '#f5f5f7', color: 'inherit' }}>
-                {dm ? '☀️' : '🌙'}
-              </button>
 
               {/* Avatar + user menu */}
               <div ref={userMenuRef} style={{ position: 'relative' }}>
                 <div onClick={() => setShowUserMenu(p => !p)}
-                  style={{ width: 34, height: 34, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', flexShrink: 0, boxShadow: showUserMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.2)', transition: 'box-shadow 0.15s', userSelect: 'none' }}>
+                  className="db-avatar"
+                  style={{ width: 34, height: 34, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', flexShrink: 0, boxShadow: showUserMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.2)', transition: 'box-shadow 0.15s, transform 0.2s ease', userSelect: 'none' }}>
                   {initials}
                 </div>
                 {showUserMenu && (
@@ -268,6 +296,19 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
                         <span style={{ fontSize: 15 }}>{item.icon}</span>{item.label}
                       </button>
                     ))}
+                    <div style={{ height: 1, background: border }} />
+                    <button className="user-row-btn" onClick={onToggleDark}
+                      style={{ color: tp, justifyContent: 'space-between' }}
+                      onMouseEnter={e => e.currentTarget.style.background = dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,39,76,0.04)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <span style={{ fontSize: 15 }}>{dm ? '☀️' : '🌙'}</span>
+                        <span>{dm ? 'Light Mode' : 'Dark Mode'}</span>
+                      </div>
+                      <div style={{ width: 32, height: 18, borderRadius: 9, background: dm ? '#FFCB05' : '#d2d2d7', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+                        <div style={{ position: 'absolute', top: 2, left: dm ? 14 : 2, width: 14, height: 14, borderRadius: '50%', background: dm ? '#00274C' : '#fff', transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)' }} />
+                      </div>
+                    </button>
                     <div style={{ height: 1, background: border }} />
                     <button className="user-row-btn" onClick={async () => { setShowUserMenu(false); await supabase.auth.signOut(); onBack() }}
                       style={{ color: '#ff3b30' }}
@@ -305,7 +346,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
                 {/* Stat cards */}
                 <div className="stat-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16, marginBottom: 36 }}>
                   {[
-                    { label: 'Active Listings', value: loading ? '—' : listings.filter(l => !l.filled).length, icon: '🏠', sub: `${listings.length} total`, accent: dm ? '#FFCB05' : '#00274C' },
+                    { label: 'Active Listings', value: listings.filter(l => l.filled !== true).length, icon: '🏠', sub: `${listings.length} total`, accent: dm ? '#FFCB05' : '#00274C' },
                     { label: 'Unread Messages', value: unreadCount, icon: '✉️', sub: unreadCount === 0 ? 'All caught up' : 'Tap to view', accent: unreadCount > 0 ? '#ff3b30' : (dm ? '#FFCB05' : '#00274C'), clickTab: unreadCount > 0 ? 'messages' : null },
                     { label: 'Profile Status', value: '✓', icon: '🎓', sub: 'UMich verified', accent: '#34c759' },
                   ].map(s => (
@@ -317,7 +358,11 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
                         <div style={{ fontSize: 12, fontWeight: 600, color: tf, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{s.label}</div>
                         <div style={{ width: 36, height: 36, borderRadius: 10, background: dm ? 'rgba(255,255,255,0.06)' : '#f5f5f7', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>{s.icon}</div>
                       </div>
-                      <div style={{ fontSize: 38, fontWeight: 900, color: s.accent, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 6 }}>{s.value}</div>
+                      {loading && s.label === 'Active Listings' ? (
+                        <div className="skeleton" style={{ height: 40, width: 60, borderRadius: 8, marginBottom: 6 }} />
+                      ) : (
+                        <div style={{ fontSize: 38, fontWeight: 900, color: s.accent, letterSpacing: '-0.04em', lineHeight: 1, marginBottom: 6 }}>{s.value}</div>
+                      )}
                       <div style={{ fontSize: 12, color: ts }}>{s.sub}</div>
                     </div>
                   ))}
@@ -353,12 +398,22 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
                     {listings.length > 0 && <button onClick={() => switchTab('listings')} style={{ background: 'none', border: 'none', fontSize: 13, color: dm ? '#FFCB05' : '#00274C', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600 }}>View all →</button>}
                   </div>
                   {loading ? (
-                    <div style={{ background: card, borderRadius: 16, border: `1px solid ${border}`, padding: '40px', textAlign: 'center', color: tf }}>Loading…</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                      {[1,2].map(n => (
+                        <div key={n} className="listing-card" style={{ display: 'flex', alignItems: 'center', overflow: 'hidden' }}>
+                          <div className="skeleton" style={{ width: 80, height: 72, flexShrink: 0 }} />
+                          <div style={{ flex: 1, padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+                            <div className="skeleton" style={{ height: 14, width: '55%', borderRadius: 6 }} />
+                            <div className="skeleton" style={{ height: 12, width: '35%', borderRadius: 6 }} />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : listings.length === 0 ? (
                     <div style={{ background: card, borderRadius: 18, border: `2px dashed ${border}`, padding: '52px 24px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
-                      <div style={{ fontSize: 16, fontWeight: 700, color: tp, marginBottom: 6 }}>No listings yet</div>
-                      <p style={{ fontSize: 13, color: ts, marginBottom: 20 }}>Post your first sublease to get started.</p>
+                      <div style={{ width: 64, height: 64, borderRadius: '50%', background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontSize: 28 }}>🏠</div>
+                      <div style={{ fontSize: 16, fontWeight: 700, color: tp, marginBottom: 6, letterSpacing: '-0.01em' }}>No listings yet</div>
+                      <p style={{ fontSize: 13, color: ts, marginBottom: 20, lineHeight: 1.5 }}>Post your first sublease and start connecting with UMich students.</p>
                       <button className="btn-primary" onClick={onPost}>Post your first listing</button>
                     </div>
                   ) : (
@@ -397,17 +452,40 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, onBrowseMine
                     <h1 style={{ fontSize: 28, fontWeight: 800, color: tp, letterSpacing: '-0.03em', marginBottom: 4 }}>My Listings</h1>
                     <p style={{ fontSize: 14, color: ts }}>Manage your subleases in one place.</p>
                   </div>
-                  <button className="btn-primary" onClick={onPost}>+ New Listing</button>
+                  <div style={{ display: 'flex', gap: 10 }}>
+                    {listings.length > 0 && (
+                      <button onClick={onBrowseMine} style={{ background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.06)', color: dm ? '#FFCB05' : '#00274C', border: 'none', borderRadius: 10, padding: '10px 18px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.background = dm ? 'rgba(255,203,5,0.18)' : 'rgba(0,39,76,0.1)'}
+                        onMouseLeave={e => e.currentTarget.style.background = dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.06)'}>
+                        🔍 View My Listings
+                      </button>
+                    )}
+                    <button className="btn-primary" onClick={onPost}>+ New Listing</button>
+                  </div>
                 </div>
 
                 {loading ? (
-                  <div style={{ textAlign: 'center', padding: '60px 0', color: tf }}>Loading your listings…</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    {[1,2].map(n => (
+                      <div key={n} className="listing-card" style={{ display: 'flex', alignItems: 'stretch', overflow: 'hidden' }}>
+                        <div className="skeleton" style={{ width: 130, minHeight: 120, flexShrink: 0 }} />
+                        <div style={{ flex: 1, padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                          <div className="skeleton" style={{ height: 16, width: '60%', borderRadius: 6 }} />
+                          <div className="skeleton" style={{ height: 12, width: '40%', borderRadius: 6 }} />
+                          <div style={{ display: 'flex', gap: 6 }}>
+                            <div className="skeleton" style={{ height: 20, width: 50, borderRadius: 980 }} />
+                            <div className="skeleton" style={{ height: 20, width: 70, borderRadius: 980 }} />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : listings.length === 0 ? (
                   <div style={{ background: card, borderRadius: 18, border: `2px dashed ${border}`, padding: '64px 24px', textAlign: 'center' }}>
-                    <div style={{ fontSize: 48, marginBottom: 16 }}>🏠</div>
-                    <div style={{ fontSize: 17, fontWeight: 700, color: tp, marginBottom: 8 }}>No listings yet</div>
-                    <p style={{ fontSize: 14, color: ts, marginBottom: 24 }}>Post your first sublease and start connecting with UMich students.</p>
-                    <button className="btn-primary" onClick={onPost}>Post your first listing</button>
+                    <div style={{ width: 80, height: 80, borderRadius: '50%', background: dm ? 'rgba(255,203,5,0.1)' : 'rgba(0,39,76,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', fontSize: 36 }}>🏠</div>
+                    <div style={{ fontSize: 18, fontWeight: 700, color: tp, marginBottom: 8, letterSpacing: '-0.02em' }}>No listings yet</div>
+                    <p style={{ fontSize: 14, color: ts, marginBottom: 28, lineHeight: 1.6, maxWidth: 320, margin: '0 auto 28px' }}>Post your first sublease and start connecting with UMich students looking for housing.</p>
+                    <button className="btn-primary" onClick={onPost}>+ Post your first listing</button>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
