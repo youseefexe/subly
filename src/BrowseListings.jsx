@@ -377,7 +377,7 @@ export default function BrowseListings({
         </nav>
 
         {/* ── FILTER BAR ── */}
-        <div className="fbar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, flexShrink: 0, zIndex: 9999 }}>
+        <div className="fbar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, flexShrink: 0, zIndex: 100 }}>
           <div style={{ padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, overflowX: 'auto', flexWrap: 'nowrap', scrollbarWidth: 'none' }}>
 
             <FilterPill label={dateFrom || dateTo ? `${dateFrom || '...'} → ${dateTo || '...'}` : '📅 Dates'} active={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo('') }} dm={dm}>
@@ -532,7 +532,7 @@ export default function BrowseListings({
                           {listing.title || listing.address || 'Untitled Listing'}
                         </h3>
                         <p style={{ fontSize: 13, color: dm ? '#8e8e93' : '#aeaeb2', marginBottom: 10 }}>
-                          📍 {listing.address}
+                          📍 {listing.address}{listing.unit_number ? `, ${listing.unit_number}` : ''}
                         </p>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                           {listing.beds && (
@@ -625,7 +625,7 @@ export default function BrowseListings({
                                   {listing.title || listing.address || 'Untitled'}
                                 </h3>
                                 <p style={{ fontSize: 12, color: dm ? '#8e8e93' : '#aeaeb2', marginBottom: 8 }}>
-                                  📍 {listing.address}
+                                  📍 {listing.address}{listing.unit_number ? `, ${listing.unit_number}` : ''}
                                 </p>
                                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                                   {listing.beds && (

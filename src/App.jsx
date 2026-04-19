@@ -5,6 +5,7 @@ import PostListing from './PostListing'
 import BrowseListings from './BrowseListings'
 import Dashboard from './Dashboard'
 import { SublyLogo, SublyWordmark } from './Logo'
+import { UserAvatar } from './Avatars'
 
 const LISTINGS = [
   { id: 1, title: 'Studio near Central Campus', price: 875, dates: 'May 1 to Aug 15', location: 'E William St', beds: 'Studio', walk: '6 min walk' },
@@ -253,7 +254,7 @@ export default function App() {
   }} initialMode={authMode} darkMode={darkMode} onToggleDark={toggleDark} />
   if (showPost) return <PostListing onBack={() => setShowPost(false)} user={currentUser} onSuccess={(listing) => { setShowPost(false); setNewListingForModal(listing); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
   if (showBrowse) return <BrowseListings onBack={() => { setShowBrowse(false); setBrowseFilterUserId(null) }} onPost={() => { setShowBrowse(false); setShowPost(true) }} onDashboard={() => { setShowBrowse(false); setBrowseFilterUserId(null); setShowDashboard(true) }} currentUser={currentUser} initialModal={newListingForModal} onModalClear={() => setNewListingForModal(null)} darkMode={darkMode} onToggleDark={toggleDark} onSignIn={() => { setShowBrowse(false); setAuthMode('signin'); setShowAuth(true) }} filterUserId={browseFilterUserId} />
-  if (showDashboard) return <Dashboard user={currentUser} onBack={() => setShowDashboard(false)} onPost={() => { setShowDashboard(false); setShowPost(true) }} onBrowse={() => { setShowDashboard(false); setShowBrowse(true) }} onBrowseMine={() => { setShowDashboard(false); setBrowseFilterUserId(currentUser?.id); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
+  if (showDashboard) return <Dashboard user={currentUser} onBack={() => setShowDashboard(false)} onPost={() => { setShowDashboard(false); setShowPost(true) }} onBrowse={(listing) => { setShowDashboard(false); if (listing) setNewListingForModal(listing); setShowBrowse(true) }} onBrowseMine={() => { setShowDashboard(false); setBrowseFilterUserId(currentUser?.id); setShowBrowse(true) }} darkMode={darkMode} onToggleDark={toggleDark} />
 
   const listing = LISTINGS[activeCard]
   const colors = darkMode ? COLORS_DARK : COLORS
@@ -302,8 +303,8 @@ export default function App() {
                 <div
                   onClick={() => setShowAvatarMenu(m => !m)}
                   className="nav-avatar"
-                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: '#FFCB05', cursor: 'pointer', boxShadow: showAvatarMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s, transform 0.2s ease', userSelect: 'none' }}>
-                  {(() => { const u = currentUser.email?.split('@')[0] || ''; return (u[0] + (u[u.length - 1] || '')).toUpperCase() })()}
+                  style={{ width: 36, height: 36, borderRadius: '50%', background: '#00274C', overflow: 'hidden', cursor: 'pointer', flexShrink: 0, boxShadow: showAvatarMenu ? '0 0 0 3px rgba(0,39,76,0.2)' : '0 2px 8px rgba(0,39,76,0.25)', transition: 'box-shadow 0.15s, transform 0.2s ease', userSelect: 'none' }}>
+                  <UserAvatar />
                 </div>
                 {showAvatarMenu && (
                   <div style={{ position: 'absolute', top: 'calc(100% + 10px)', left: '50%', transform: 'translateX(-50%)', background: 'var(--card)', borderRadius: 14, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', border: '1px solid var(--border)', overflow: 'hidden', minWidth: 200, zIndex: 300 }}>

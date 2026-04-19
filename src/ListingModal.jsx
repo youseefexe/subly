@@ -12,10 +12,11 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
   const [isOwner, setIsOwner] = useState(false)
 
   useEffect(() => {
-    if (currentUser?.id && listing?.user_id) {
-      setIsOwner(String(currentUser.id).trim() === String(listing.user_id).trim())
-    }
-  }, [currentUser, listing])
+    if (!currentUser || !listing) { setIsOwner(false); return }
+    const uid = String(currentUser.id || '').trim().toLowerCase()
+    const lid = String(listing.user_id || '').trim().toLowerCase()
+    setIsOwner(uid.length > 0 && uid === lid)
+  }, [currentUser?.id, listing?.user_id])
 
   const parseImages = (raw) => {
     if (!raw) return []
@@ -24,7 +25,7 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
   const images = parseImages(listing.image_url)
   const tags = parseTags(listing.tags)
 
-  const formatAddress = (address, neighborhood) => {
+  const formatAddress = (address, neighborhood, unit_number) => {
     if (!address) return neighborhood || ''
     const street = address.split(',')[0].trim()
     const abbr = street
@@ -34,7 +35,8 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
       .replace(/\bBoulevard\b/gi, 'Blvd.').replace(/\bDrive\b/gi, 'Dr.')
       .replace(/\bRoad\b/gi, 'Rd.').replace(/\bLane\b/gi, 'Ln.')
       .replace(/\bCourt\b/gi, 'Ct.').replace(/\bPlace\b/gi, 'Pl.')
-    return neighborhood ? `${abbr} · ${neighborhood}` : abbr
+    const withUnit = unit_number ? `${abbr}, ${unit_number}` : abbr
+    return neighborhood ? `${withUnit} · ${neighborhood}` : withUnit
   }
 
   useEffect(() => {
@@ -320,7 +322,7 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
                 </svg>
-                {formatAddress(listing.address, listing.neighborhood)}
+                {formatAddress(listing.address, listing.neighborhood, listing.unit_number)}
               </div>
 
               {/* Divider */}
@@ -425,6 +427,9 @@ export default function ListingModal({ listing, onClose, darkMode, currentUser, 
               )}
               <p style={{ textAlign: 'center', fontSize: 12, color: textFaint, marginTop: 10 }}>
                 ✓ @umich.edu verified listing
+              </p>
+              <p style={{ textAlign: 'center', fontSize: 10, color: '#ff3b30', marginTop: 6, fontFamily: 'monospace' }}>
+                DEBUG: currentUser.id={currentUser?.id} listing.user_id={listing?.user_id} isOwner={String(isOwner)}
               </p>
             </div>
           </div>
