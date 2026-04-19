@@ -85,12 +85,12 @@ export default function ListingModal({ listing, onClose, darkMode }) {
         .lm-img-main { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
 
         .lm-thumb {
-          width: 60px; height: 44px; border-radius: 6px; object-fit: cover;
-          cursor: pointer; opacity: 0.55; border: 2px solid transparent;
+          width: 76px; height: 54px; border-radius: 7px; object-fit: cover;
+          cursor: pointer; opacity: 0.5; border: 2.5px solid transparent;
           transition: all 0.15s; flex-shrink: 0;
         }
-        .lm-thumb.active { opacity: 1; border-color: #fff; }
-        .lm-thumb:hover { opacity: 0.85; }
+        .lm-thumb.active { opacity: 1; border-color: #fff; box-shadow: 0 0 0 1px rgba(255,255,255,0.3); }
+        .lm-thumb:hover { opacity: 0.82; }
 
         .lm-contact-btn {
           display: flex; align-items: center; justify-content: center; gap: 10px;
@@ -173,7 +173,7 @@ export default function ListingModal({ listing, onClose, darkMode }) {
           <div
             className="lm-left"
             style={{
-              width: '55%', height: '100%',
+              width: '65%', height: '100%',
               background: dm ? '#0a0a0c' : '#0f0f14',
               position: 'relative', flexShrink: 0,
               display: 'flex', flexDirection: 'column',
@@ -211,9 +211,10 @@ export default function ListingModal({ listing, onClose, darkMode }) {
               <div
                 className="lm-thumbs"
                 style={{
-                  display: 'flex', gap: 8, padding: '12px 16px',
-                  background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(12px)',
+                  display: 'flex', gap: 8, padding: '14px 16px',
+                  background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(16px)',
                   overflowX: 'auto', flexShrink: 0,
+                  scrollbarWidth: 'none',
                 }}
               >
                 {images.map((src, i) => (

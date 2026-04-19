@@ -15,8 +15,8 @@ L.Icon.Default.mergeOptions({
 
 const UMichIcon = L.divIcon({
   className: '',
-  html: `<div style="background:#00274C;color:#FFCB05;width:32px;height:32px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,0.3);border:2px solid #FFCB05;"><span style="transform:rotate(45deg);font-size:14px;">🏠</span></div>`,
-  iconSize: [32, 32], iconAnchor: [16, 32], popupAnchor: [0, -36],
+  html: `<div style="background:#00274C;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.45),0 1px 4px rgba(0,0,0,0.3);border:3px solid #FFCB05;"><span style="font-size:20px;line-height:1;">🏠</span></div>`,
+  iconSize: [44, 44], iconAnchor: [22, 44], popupAnchor: [0, -48],
 })
 
 const TAGS = ['Utilities included', 'In-unit washer/dryer', 'Parking included', 'Pet friendly', 'Furnished', 'A/C', 'Dishwasher', 'Gym access', 'Near bus line', 'Private bathroom', 'Short term ok', 'Bills split']
@@ -367,7 +367,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
           {view !== 'list' && (
             <div style={{ flex: 1, position: 'relative' }}>
               <MapContainer center={mapCenter} zoom={14} style={{ height: '100%', width: '100%' }}>
-                <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution='&copy; OpenStreetMap contributors' />
+                <TileLayer url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png" attribution='&copy; OpenStreetMap contributors &copy; CARTO' />
                 {filtered.map(listing => {
                   const coords = geocoded[listing.id]
                   if (!coords) return null
