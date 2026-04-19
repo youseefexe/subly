@@ -144,6 +144,8 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
         .btn-filled:hover { background: rgba(0,0,0,0.1); }
         [data-theme="dark"] .btn-filled { background: rgba(255,255,255,0.08); color: #8e8e93; }
         [data-theme="dark"] .btn-filled:hover { background: rgba(255,255,255,0.12); }
+        [data-theme="dark"] .btn-edit { background: rgba(255,203,5,0.1); color: #FFCB05; }
+        [data-theme="dark"] .btn-edit:hover { background: rgba(255,203,5,0.15); }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 300; display: flex; align-items: center; justify-content: center; padding: 24px; backdrop-filter: blur(6px); }
         .modal { background: #fff; border-radius: 20px; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; box-shadow: 0 32px 80px rgba(0,0,0,0.18); }
         .stat-card { background: #fff; border-radius: 14px; border: 1px solid rgba(0,0,0,0.07); padding: 20px; }
@@ -247,10 +249,10 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                 {[{ label: 'Total Listings', value: listings.length, icon: '🏠' }, { label: 'Active Now', value: listings.length, icon: '✅' }, { label: 'Inquiries', value: '—', icon: '✉️' }].map(s => (
                   <div key={s.label} className="stat-card">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: '#aeaeb2', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{s.label}</div>
+                      <div style={{ fontSize: 11, fontWeight: 600, color: dm ? '#8e8e93' : '#aeaeb2', letterSpacing: '0.05em', textTransform: 'uppercase' }}>{s.label}</div>
                       <span style={{ fontSize: 18 }}>{s.icon}</span>
                     </div>
-                    <div style={{ fontSize: 28, fontWeight: 800, color: '#00274C', letterSpacing: '-0.03em' }}>{s.value}</div>
+                    <div style={{ fontSize: 28, fontWeight: 800, color: dm ? '#f5f5f7' : '#00274C', letterSpacing: '-0.03em' }}>{s.value}</div>
                   </div>
                 ))}
               </div>
@@ -269,7 +271,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                   {listings.map(listing => (
                     <div key={listing.id} className="listing-card">
                       <div style={{ display: 'flex' }}>
-                        <div style={{ width: 130, flexShrink: 0, background: '#f5f5f7' }}>
+                        <div style={{ width: 130, flexShrink: 0, background: dm ? '#2c2c2e' : '#f5f5f7' }}>
                           {getCoverImage(listing.image_url)
                             ? <img src={getCoverImage(listing.image_url)} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', minHeight: 120 }} />
                             : <div style={{ width: '100%', minHeight: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 36 }}>🏠</div>
@@ -286,8 +288,8 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                             </div>
                             <p style={{ fontSize: 13, color: dm ? '#8e8e93' : '#aeaeb2', marginBottom: 10 }}>📍 {listing.address}</p>
                             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                              <span style={{ fontSize: 11, background: '#f5f5f7', color: '#6e6e73', padding: '3px 9px', borderRadius: 980 }}>{listing.beds}</span>
-                              {listing.dates && <span style={{ fontSize: 11, background: 'rgba(255,203,5,0.12)', color: '#7a5c00', padding: '3px 9px', borderRadius: 980 }}>{listing.dates}</span>}
+                              <span style={{ fontSize: 11, background: dm ? 'rgba(255,255,255,0.1)' : '#f5f5f7', color: dm ? '#8e8e93' : '#6e6e73', padding: '3px 9px', borderRadius: 980 }}>{listing.beds}</span>
+                              {listing.dates && <span style={{ fontSize: 11, background: 'rgba(255,203,5,0.12)', color: dm ? '#c9a600' : '#7a5c00', padding: '3px 9px', borderRadius: 980 }}>{listing.dates}</span>}
                             </div>
                           </div>
                           <div style={{ display: 'flex', gap: 8, marginTop: 14, justifyContent: 'flex-end' }}>
@@ -317,15 +319,15 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                   <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
                     <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, fontWeight: 700, color: '#FFCB05' }}>{initials}</div>
                     <div>
-                      <div style={{ fontSize: 17, fontWeight: 700, color: '#1d1d1f' }}>{user?.email?.split('@')[0]}</div>
-                      <div style={{ fontSize: 13, color: '#aeaeb2' }}>{user?.email}</div>
+                      <div style={{ fontSize: 17, fontWeight: 700, color: dm ? '#f5f5f7' : '#1d1d1f' }}>{user?.email?.split('@')[0]}</div>
+                      <div style={{ fontSize: 13, color: dm ? '#8e8e93' : '#aeaeb2' }}>{user?.email}</div>
                     </div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                     {[{ label: 'Email', value: user?.email }, { label: 'Verification', value: '✓ UMich student verified' }, { label: 'Listings posted', value: listings.length }].map(row => (
                       <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid rgba(0,0,0,0.06)' }}>
-                        <span style={{ fontSize: 13, color: '#aeaeb2' }}>{row.label}</span>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: row.label === 'Verification' ? '#34c759' : '#1d1d1f' }}>{row.value}</span>
+                        <span style={{ fontSize: 13, color: dm ? '#8e8e93' : '#aeaeb2' }}>{row.label}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: row.label === 'Verification' ? '#34c759' : (dm ? '#f5f5f7' : '#1d1d1f') }}>{row.value}</span>
                       </div>
                     ))}
                   </div>
@@ -370,7 +372,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
               {/* Image editor */}
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                  <label style={{ fontSize: 11, fontWeight: 600, color: '#6e6e73', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Photos</label>
+                  <label style={{ fontSize: 11, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Photos</label>
                   <span style={{ fontSize: 11, color: totalImages >= 5 ? '#ff3b30' : '#aeaeb2' }}>{totalImages} / 5</span>
                 </div>
 
@@ -396,7 +398,7 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                 {totalImages < 5 && (
                   <div className="drop-zone" onClick={() => document.getElementById('edit-img-input').click()}>
                     <div style={{ fontSize: 24, marginBottom: 6 }}>📷</div>
-                    <div style={{ fontSize: 13, fontWeight: 600, color: '#00274C', marginBottom: 2 }}>{totalImages === 0 ? 'Add photos' : 'Add more'}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: dm ? '#FFCB05' : '#00274C', marginBottom: 2 }}>{totalImages === 0 ? 'Add photos' : 'Add more'}</div>
                     <div style={{ fontSize: 11, color: '#aeaeb2' }}>Click to browse</div>
                   </div>
                 )}
@@ -410,18 +412,18 @@ export default function Dashboard({ user, onBack, onPost, onBrowse, darkMode, on
                 { label: 'Contact Email', field: 'contact_email', placeholder: 'you@umich.edu' },
               ].map(({ label, field, placeholder }) => (
                 <div key={field}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{label}</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>{label}</label>
                   <input className="field-input" placeholder={placeholder} value={editForm[field]} onChange={e => updateEdit(field, e.target.value)} />
                 </div>
               ))}
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Monthly Rent</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Monthly Rent</label>
                   <input className="field-input" type="number" value={editForm.price} onChange={e => updateEdit('price', e.target.value)} />
                 </div>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Bedrooms</label>
+                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 6, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Bedrooms</label>
                   <select className="field-input" value={editForm.beds} onChange={e => updateEdit('beds', e.target.value)}>
                     {['Studio', '1 Bed', '2 Bed', '3 Bed', '4+ Bed'].map(b => <option key={b}>{b}</option>)}
                   </select>

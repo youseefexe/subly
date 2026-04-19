@@ -249,7 +249,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
         </nav>
 
         {/* FILTER BAR */}
-        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 999, position: 'relative', scrollbarWidth: 'none' }}>
+        <div className="filter-bar" style={{ background: dm ? '#1c1c1e' : '#fff', borderBottom: `1px solid ${dm ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`, padding: '10px 24px', display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, overflowX: 'auto', flexWrap: 'nowrap', zIndex: 1002, position: 'relative', scrollbarWidth: 'none' }}>
 
           <FilterPill label={dateFrom || dateTo ? `${dateFrom || '...'} → ${dateTo || '...'}` : '📅 Dates'} active={!!(dateFrom || dateTo)} onClear={() => { setDateFrom(''); setDateTo('') }} dm={dm}>
             <div style={{ marginBottom: 4, fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>From</div>
@@ -267,8 +267,8 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
 
           <FilterPill label={priceActive ? `💰 Under $${maxPrice.toLocaleString()}` : '💰 Price'} active={priceActive} onClear={() => { setPriceActive(false); setMaxPrice(3000) }} dm={dm}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontWeight: 700, color: '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Max rent</div>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#00274C', letterSpacing: '-0.02em' }}>${maxPrice.toLocaleString()}</div>
+              <div style={{ fontSize: 11, fontWeight: 700, color: dm ? '#636366' : '#aeaeb2', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Max rent</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: dm ? '#FFCB05' : '#00274C', letterSpacing: '-0.02em' }}>${maxPrice.toLocaleString()}</div>
             </div>
             <div style={{ position: 'relative', marginBottom: 8 }}>
               <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: 4, background: `linear-gradient(to right, #00274C ${(maxPrice / MAX_SLIDER) * 100}%, #e5e7eb ${(maxPrice / MAX_SLIDER) * 100}%)`, borderRadius: 2, transform: 'translateY(-50%)', pointerEvents: 'none' }} />
@@ -279,7 +279,7 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {[1000, 1500, 2000, 2500].map(p => (
-                <button key={p} onClick={() => { setMaxPrice(p); setPriceActive(true) }} style={{ padding: '5px 10px', borderRadius: 980, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', border: `1.5px solid ${maxPrice === p && priceActive ? '#00274C' : 'rgba(0,0,0,0.1)'}`, background: maxPrice === p && priceActive ? '#00274C' : '#fff', color: maxPrice === p && priceActive ? '#FFCB05' : '#6e6e73', transition: 'all 0.15s' }}>
+                <button key={p} onClick={() => { setMaxPrice(p); setPriceActive(true) }} style={{ padding: '5px 10px', borderRadius: 980, fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', border: `1.5px solid ${maxPrice === p && priceActive ? '#00274C' : (dm ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.1)')}`, background: maxPrice === p && priceActive ? '#00274C' : (dm ? '#2c2c2e' : '#fff'), color: maxPrice === p && priceActive ? '#FFCB05' : (dm ? '#8e8e93' : '#6e6e73'), transition: 'all 0.15s' }}>
                   Under ${p.toLocaleString()}
                 </button>
               ))}
@@ -331,19 +331,19 @@ export default function BrowseListings({ onBack, onPost, currentUser, initialMod
               {loading ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <div style={{ fontSize: 32, marginBottom: 12 }}>⏳</div>
-                  <p style={{ color: '#aeaeb2', fontSize: 14 }}>Loading listings...</p>
+                  <p style={{ color: dm ? '#636366' : '#aeaeb2', fontSize: 14 }}>Loading listings...</p>
                 </div>
               ) : filtered.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 0' }}>
                   <div style={{ fontSize: 40, marginBottom: 12 }}>🏠</div>
                   <p style={{ color: dm ? '#f5f5f7' : '#1d1d1f', fontSize: 16, fontWeight: 600, marginBottom: 6 }}>No listings found</p>
                   <p style={{ color: dm ? '#636366' : '#aeaeb2', fontSize: 14, marginBottom: 16 }}>Try adjusting your filters.</p>
-                  {anyActive && <button onClick={clearAll} style={{ background: 'none', border: '1.5px solid rgba(0,39,76,0.2)', borderRadius: 980, padding: '8px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: '#00274C' }}>Clear filters</button>}
+                  {anyActive && <button onClick={clearAll} style={{ background: 'none', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.15)' : 'rgba(0,39,76,0.2)'}`, borderRadius: 980, padding: '8px 20px', fontSize: 13, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', color: dm ? '#f5f5f7' : '#00274C' }}>Clear filters</button>}
                 </div>
               ) : (
                 filtered.map(listing => (
                   <div key={listing.id} className="listing-tile" onClick={() => setModalListing(listing)} style={{ opacity: listing.filled ? 0.75 : 1 }}>
-                    <div style={{ height: 180, background: '#f0f4ff', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ height: 180, background: dm ? '#2c2c2e' : '#f0f4ff', position: 'relative', overflow: 'hidden' }}>
                       {getCoverImage(listing.image_url)
                         ? <img src={getCoverImage(listing.image_url)} alt={listing.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         : <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 48 }}>🏠</div>

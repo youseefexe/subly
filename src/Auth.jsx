@@ -180,12 +180,12 @@ const { error } = await supabase.auth.signUp({
 
           {/* Error / success */}
           {error && (
-            <div style={{ background: '#FEF2F2', border: '1px solid rgba(220,38,38,0.15)', color: '#DC2626', fontSize: 13, padding: '11px 14px', borderRadius: 10, marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ background: dm ? 'rgba(220,38,38,0.12)' : '#FEF2F2', border: `1px solid ${dm ? 'rgba(220,38,38,0.25)' : 'rgba(220,38,38,0.15)'}`, color: dm ? '#ff6b6b' : '#DC2626', fontSize: 13, padding: '11px 14px', borderRadius: 10, marginBottom: 16, lineHeight: 1.5 }}>
               {error}
             </div>
           )}
           {message && (
-            <div style={{ background: '#F0FDF4', border: '1px solid rgba(34,197,94,0.2)', color: '#16A34A', fontSize: 13, padding: '11px 14px', borderRadius: 10, marginBottom: 16, lineHeight: 1.5 }}>
+            <div style={{ background: dm ? 'rgba(34,197,94,0.1)' : '#F0FDF4', border: `1px solid ${dm ? 'rgba(34,197,94,0.25)' : 'rgba(34,197,94,0.2)'}`, color: dm ? '#4ade80' : '#16A34A', fontSize: 13, padding: '11px 14px', borderRadius: 10, marginBottom: 16, lineHeight: 1.5 }}>
               {message}
             </div>
           )}
@@ -197,9 +197,9 @@ const { error } = await supabase.auth.signUp({
 
           {/* Divider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
-            <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
-            <span style={{ fontSize: 12, color: '#c7c7cc' }}>or</span>
-            <div style={{ flex: 1, height: 1, background: 'rgba(0,0,0,0.08)' }} />
+            <div style={{ flex: 1, height: 1, background: dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
+            <span style={{ fontSize: 12, color: dm ? '#636366' : '#c7c7cc' }}>or</span>
+            <div style={{ flex: 1, height: 1, background: dm ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' }} />
           </div>
 
           {/* Switch mode */}

@@ -171,6 +171,8 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
         .suggestion-item { padding: 11px 16px; font-size: 14px; color: #1d1d1f; cursor: pointer; border-bottom: 1px solid rgba(0,0,0,0.05); transition: background 0.15s; display: flex; align-items: center; gap: 8px; }
         .suggestion-item:hover { background: rgba(0,39,76,0.04); }
         .suggestion-item:last-child { border-bottom: none; }
+        [data-theme="dark"] .suggestion-item { color: #f5f5f7; border-bottom-color: rgba(255,255,255,0.06); }
+        [data-theme="dark"] .suggestion-item:hover { background: rgba(255,203,5,0.06); }
 
         .react-datepicker-wrapper { width: 100%; }
         .react-datepicker__input-container input { width: 100%; background: #fff; border: 1.5px solid rgba(0,39,76,0.12); border-radius: 12px; padding: 13px 16px; font-size: 15px; font-family: 'Inter', sans-serif; color: #1d1d1f; transition: all 0.2s; outline: none; cursor: pointer; }
@@ -211,8 +213,8 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
               <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#00274C', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 24px' }}>
                 <span style={{ color: '#FFCB05', fontSize: 28 }}>✓</span>
               </div>
-              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#00274C', marginBottom: 12, letterSpacing: '-0.02em' }}>Listing posted!</h2>
-              <p style={{ fontSize: 16, color: '#6e6e73', marginBottom: 36 }}>Your sublease is now live for UMich students to find.</p>
+              <h2 style={{ fontSize: 28, fontWeight: 800, color: dm ? '#f5f5f7' : '#00274C', marginBottom: 12, letterSpacing: '-0.02em' }}>Listing posted!</h2>
+              <p style={{ fontSize: 16, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 36 }}>Your sublease is now live for UMich students to find.</p>
               <button onClick={onBack} style={{ background: '#00274C', color: '#FFCB05', border: 'none', borderRadius: 980, padding: '12px 28px', fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>Back to home</button>
             </div>
           ) : (
@@ -227,7 +229,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                 {/* Images */}
                 <div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#6e6e73', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Photos</label>
+                    <label style={{ fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', letterSpacing: '0.05em', textTransform: 'uppercase' }}>Photos</label>
                     <span style={{ fontSize: 12, color: images.length >= MAX_IMAGES ? '#ff3b30' : '#aeaeb2' }}>{images.length} / {MAX_IMAGES}</span>
                   </div>
                   {images.length > 0 && (
@@ -249,7 +251,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                       onDragLeave={() => setDragOver(false)}
                       onDrop={e => { e.preventDefault(); setDragOver(false); handleImages(e.dataTransfer.files) }}>
                       <div style={{ fontSize: 32, marginBottom: 10 }}>📷</div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#00274C', marginBottom: 4 }}>{images.length === 0 ? 'Add photos' : 'Add more photos'}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: dm ? '#FFCB05' : '#00274C', marginBottom: 4 }}>{images.length === 0 ? 'Add photos' : 'Add more photos'}</div>
                       <div style={{ fontSize: 13, color: '#aeaeb2' }}>Drag and drop or click to browse</div>
                       <div style={{ fontSize: 11, color: '#d2d2d7', marginTop: 4 }}>Up to {MAX_IMAGES} photos, 5MB each</div>
                     </div>
@@ -259,13 +261,13 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
 
                 {/* Title */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Listing Title *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Listing Title *</label>
                   <input className="field-input" placeholder="e.g. Studio near Central Campus" value={form.title} onChange={e => update('title', e.target.value)} />
                 </div>
 
                 {/* Address with autocomplete */}
                 <div style={{ position: 'relative' }}>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Address *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Address *</label>
                   <input
                     ref={addressRef}
                     className="field-input"
@@ -276,7 +278,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                     autoComplete="off"
                   />
                   {showSuggestions && suggestions.length > 0 && (
-                    <div ref={suggestionsRef} style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1.5px solid rgba(0,39,76,0.12)', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.1)', zIndex: 100, marginTop: 6, overflow: 'hidden' }}>
+                    <div ref={suggestionsRef} style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: dm ? '#2c2c2e' : '#fff', border: `1.5px solid ${dm ? 'rgba(255,255,255,0.1)' : 'rgba(0,39,76,0.12)'}`, borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.15)', zIndex: 100, marginTop: 6, overflow: 'hidden' }}>
                       {suggestions.map((s, i) => (
                         <div key={i} className="suggestion-item" onMouseDown={() => selectSuggestion(s)}>
                           <span style={{ fontSize: 14, color: '#6e6e73', flexShrink: 0 }}>📍</span>
@@ -290,11 +292,11 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                 {/* Price and Beds */}
                 <div className="two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Monthly Rent *</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Monthly Rent *</label>
                     <input className="field-input" type="number" placeholder="875" value={form.price} onChange={e => update('price', e.target.value)} />
                   </div>
                   <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Bedrooms *</label>
+                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Bedrooms *</label>
                     <select className="field-input" value={form.beds} onChange={e => update('beds', e.target.value)}>
                       {['Studio', '1 Bed', '2 Bed', '3 Bed', '4+ Bed'].map(b => <option key={b}>{b}</option>)}
                     </select>
@@ -303,7 +305,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
 
                 {/* Date range */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Available Dates *</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Available Dates *</label>
                   <div className="two-col-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                     <div>
                       <div style={{ fontSize: 11, color: '#aeaeb2', marginBottom: 6, fontWeight: 500 }}>FROM</div>
@@ -334,7 +336,7 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                     </div>
                   </div>
                   {startDate && endDate && (
-                    <p style={{ fontSize: 12, color: '#00274C', marginTop: 8, fontWeight: 500 }}>
+                    <p style={{ fontSize: 12, color: dm ? '#FFCB05' : '#00274C', marginTop: 8, fontWeight: 500 }}>
                       {Math.round((endDate - startDate) / (1000 * 60 * 60 * 24))} days available
                     </p>
                   )}
@@ -342,13 +344,13 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
 
                 {/* Description */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Description</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Description</label>
                   <textarea className="field-input" rows={4} placeholder="Describe your place, amenities, distance to campus, parking, etc." value={form.description} onChange={e => update('description', e.target.value)} style={{ resize: 'vertical' }} />
                 </div>
 
                 {/* Tags / Amenities */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Amenities & Tags</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Amenities & Tags</label>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                     {TAGS.map(tag => (
                       <button
@@ -364,9 +366,9 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
                           transition: 'all 0.15s',
                           fontFamily: 'inherit',
                           border: '1.5px solid',
-                          borderColor: selectedTags.includes(tag) ? '#00274C' : 'rgba(0,0,0,0.08)',
-                          background: selectedTags.includes(tag) ? '#00274C' : '#fff',
-                          color: selectedTags.includes(tag) ? '#FFCB05' : '#6e6e73',
+                          borderColor: selectedTags.includes(tag) ? '#00274C' : (dm ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.08)'),
+                          background: selectedTags.includes(tag) ? '#00274C' : (dm ? '#2c2c2e' : '#fff'),
+                          color: selectedTags.includes(tag) ? '#FFCB05' : (dm ? '#8e8e93' : '#6e6e73'),
                         }}
                       >
                         {selectedTags.includes(tag) ? '✓ ' : ''}{tag}
@@ -377,13 +379,13 @@ export default function PostListing({ onBack, user, onSuccess, darkMode, onToggl
 
                 {/* Contact */}
                 <div>
-                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Contact Email</label>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: dm ? '#8e8e93' : '#6e6e73', marginBottom: 8, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Contact Email</label>
                   <input className="field-input" type="email" value={form.contact_email} onChange={e => update('contact_email', e.target.value)} />
                   <p style={{ fontSize: 12, color: '#aeaeb2', marginTop: 6 }}>This is how interested students will reach you.</p>
                 </div>
 
                 {error && (
-                  <div style={{ background: '#FEF2F2', border: '1px solid rgba(220,38,38,0.2)', color: '#DC2626', fontSize: 13, padding: '12px 16px', borderRadius: 10 }}>{error}</div>
+                  <div style={{ background: dm ? 'rgba(220,38,38,0.12)' : '#FEF2F2', border: `1px solid ${dm ? 'rgba(220,38,38,0.25)' : 'rgba(220,38,38,0.2)'}`, color: dm ? '#ff6b6b' : '#DC2626', fontSize: 13, padding: '12px 16px', borderRadius: 10 }}>{error}</div>
                 )}
 
                 <button className="submit-btn" onClick={handleSubmit} disabled={status === 'loading'}>
